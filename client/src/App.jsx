@@ -9,7 +9,7 @@ function App() {
   const fetchStatus = async () => {
     try {
       // Calling your Express API endpoint
-      const response = await axios.get('http://localhost:5000/api/status');
+      const response = await axios.get('/api/status');
       setApiStatus(response.data.message); // response.data is returned as JSON
     } catch (error) {
       console.error("Error fetching the API status:", error);
