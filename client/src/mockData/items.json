@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "Dell Latitude 5420 Laptop",
+    "category": "Laptops",
+    "location": "John C. Hitt Library",
+    "availability": 5,
+    "loanPeriod": "7 Days",
+    "restrictedTo": "All",
+    "image": "https://placeholder.com/150"
+  },
+  {
+    "id": 2,
+    "name": "Sony Alpha a6400 Camera",
+    "category": "Cameras",
+    "location": "Downtown Campus",
+    "availability": 0,
+    "loanPeriod": "3 Days",
+    "restrictedTo": "Faculty",
+    "image": "https://placeholder.com/150"
+  },
+  {
+    "id": 3,
+    "name": "USB-C to HDMI Adapter",
+    "category": "Accessories",
+    "location": "John C. Hitt Library",
+    "availability": 12,
+    "loanPeriod": "4 Hours",
+    "restrictedTo": "All",
+    "image": "https://placeholder.com/150"
+  }
+]
