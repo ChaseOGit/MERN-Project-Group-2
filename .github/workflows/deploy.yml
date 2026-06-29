@@ -1,6 +1,5 @@
 name: CI/CD Pipeline - Deploy to Droplet
 
-# This tells GitHub to run this script whenever code is pushed (or merged) into the 'main' branch.
 on:
   push:
     branches:
@@ -17,7 +16,17 @@ jobs:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # This runs the shortcut script we made earlier!
+          # Run the update commands directly instead of looking for update.sh
           script: |
             cd /var/www/MERN-Project-Group-2
-            ./update.sh
+            git pull origin main
+            
+            echo "Updating backend..."
+            cd server
+            npm install
+            pm2 restart mern-backend
+            
+            echo "Updating frontend..."
+            cd ../client
+            npm install
+            npm run build
