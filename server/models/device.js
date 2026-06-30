@@ -18,5 +18,5 @@ const devicesSchema = new mongoose.Schema({
   }] 
 }); 
 
-// Export JUST the Device
+// Export the Device model, not the schema itself
 module.exports = mongoose.model('Device', devicesSchema);
