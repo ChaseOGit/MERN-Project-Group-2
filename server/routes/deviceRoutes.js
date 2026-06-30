@@ -36,37 +36,33 @@ router.post('/', async (req, res) => {
     }
 });
 
+
 router.get('/seed', async (req, res) => {
     const mockDevices = [
         { 
-            name: "Dell Latitude 5420 Laptop", 
-            category: "Laptops", 
-            serialNumber: "SN-12345", 
-            RentRate: 0, 
-            isAvailable: true 
+            name: "Dell Latitude 5420 Laptop", category: "Laptops", serialNumber: "SN-12345", 
+            location: "John C. Hitt Library", loanPeriod: "7 Days", overdueFeeRate: 15, isAvailable: true,
+            image: "https://p11.zdassets.com/hc/theme_assets/1179782/200326467/laptop.png"
         },
         { 
-            name: "Sony Alpha a6400 Camera", 
-            category: "Cameras", 
-            serialNumber: "SN-67890", 
-            RentRate: 5, 
-            isAvailable: false 
+            name: "Dell Latitude 5420 Laptop", category: "Laptops", serialNumber: "SN-12346", 
+            location: "John C. Hitt Library", loanPeriod: "7 Days", overdueFeeRate: 15, isAvailable: false,
+            image: "https://p11.zdassets.com/hc/theme_assets/1179782/200326467/laptop.png"
         },
         { 
-            name: "USB-C to HDMI Adapter", 
-            category: "Accessories", 
-            serialNumber: "SN-11111", 
-            RentRate: 0, 
-            isAvailable: true 
+            name: "Sony Alpha a6400 Camera", category: "Cameras", serialNumber: "SN-67890", 
+            location: "Downtown Campus", loanPeriod: "3 Days", overdueFeeRate: 25, isAvailable: false 
+        },
+        { 
+            name: "USB-C to HDMI Adapter", category: "Accessories", serialNumber: "SN-11111", 
+            location: "John C. Hitt Library", loanPeriod: "4 Hours", overdueFeeRate: 5, isAvailable: true 
         }
     ];
 
     try {
-        // 1. Delete old test data so we don't get duplicate Serial Number errors
         await Device.deleteMany({}); 
-        // 2. Insert the new devices
         await Device.insertMany(mockDevices);
-        res.json({ success: true, message: "Database seeded successfully with Devices!" });
+        res.json({ success: true, message: "Database seeded successfully with new UCF requirements!" });
     } catch (error) {
         res.status(500).json({ success: false, message: "Seeding failed: " + error.message });
     }

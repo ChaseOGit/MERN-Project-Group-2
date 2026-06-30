@@ -1,22 +1,27 @@
 const mongoose = require('mongoose');
 
 const devicesSchema = new mongoose.Schema({ 
-  name: {type: String, required: true}, 
-  category: {type: String, required: true}, 
-  serialNumber: {type: String, unique: true}, 
-  RentRate: {type: Number, required: true}, 
-  isAvailable: {type: Boolean, default: true}, 
+  name: { type: String, required: true }, 
+  category: { type: String, required: true }, 
+  serialNumber: { type: String, unique: true, required: true }, 
+  
+  location: { type: String, required: true }, 
+  loanPeriod: { type: String, required: true },
+  image: { type: String, default: 'https://via.placeholder.com/300x200?text=Tech+Device' },
+  
+  overdueFeeRate: { type: Number, required: true }, 
+  
+  isAvailable: { type: Boolean, default: true }, 
   currentRenter: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 
     default: null 
   }, 
   rentalHistory: [{ 
-    userId: { type: mongoose.Schema.Types.ObjectId,ref: 'User' }, 
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
     rentedAt: { type: Date }, 
     returnedAt: { type: Date } 
   }] 
-}); 
+}, { timestamps: true }); 
 
-// Export the Device model, not the schema itself
 module.exports = mongoose.model('Device', devicesSchema);

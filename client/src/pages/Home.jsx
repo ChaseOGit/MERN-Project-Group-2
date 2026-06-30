@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, MapPin, Clock } from 'lucide-react';
 import api from '../services/api';
 
 export default function Home() {
@@ -8,10 +8,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch REAL data from your backend
     api.get('/devices')
       .then(response => {
-        // Our backend wraps the array in { success: true, data: [...] }
         setItems(response.data.data); 
         setIsLoading(false);
       })
@@ -21,17 +19,34 @@ export default function Home() {
       });
   }, []);
 
-  const filteredItems = activeCategory === "All" 
-    ? items 
-    : items.filter(item => item.category === activeCategory);
+  // GROUPING LOGIC (Now grabs the new image, location, and loan period)
+  const groupedItems = items.reduce((acc, device) => {
+    if (!acc[device.name]) {
+      acc[device.name] = {
+        id: device._id,
+        name: device.name,
+        category: device.category,
+        image: device.image,
+        location: device.location,
+        loanPeriod: device.loanPeriod,
+        totalCount: 0,
+        availableCount: 0,
+      };
+    }
+    acc[device.name].totalCount += 1;
+    if (device.isAvailable) {
+      acc[device.name].availableCount += 1;
+    }
+    return acc;
+  }, {});
 
-  // Show a simple loading message while fetching from MongoDB
+  const displayItems = Object.values(groupedItems);
+  const filteredItems = activeCategory === "All" 
+    ? displayItems 
+    : displayItems.filter(item => item.category === activeCategory);
+
   if (isLoading) {
-    return (
-      <main className="main-layout" style={{ textAlign: "center", padding: "4rem" }}>
-        <h2>Loading Inventory...</h2>
-      </main>
-    );
+    return <main className="main-layout" style={{ textAlign: "center", padding: "4rem" }}><h2>Loading Inventory...</h2></main>;
   }
 
   return (
@@ -58,15 +73,10 @@ export default function Home() {
           <p style={{ color: "var(--text-muted)" }}>No devices found in this category.</p>
         ) : (
           filteredItems.map(item => (
-            <article className="tech-card" key={item._id}>
+            <article className="tech-card" key={item.id}>
               
               <div className="card-image-wrapper">
-                {/* Fallback image since the Device schema doesn't have an image field yet */}
-                <img 
-                  src="https://via.placeholder.com/300x200?text=Tech+Device" 
-                  alt={item.name} 
-                  className="card-image" 
-                />
+                <img src={item.image} alt={item.name} className="card-image" />
                 <span className="category-badge">{item.category}</span>
               </div>
               
@@ -76,30 +86,30 @@ export default function Home() {
                 <div className="card-meta">
                   <div className="meta-item">
                     <MapPin size={16} className="meta-icon" />
-                    <span>SN: {item.serialNumber}</span>
+                    <span>{item.location}</span>
                   </div>
                   <div className="meta-item">
                     <Clock size={16} className="meta-icon" />
-                    <span>Fee: ${item.RentRate}/day</span>
+                    <span>Loan Period: {item.loanPeriod}</span>
                   </div>
                 </div>
                 
                 <div className="card-divider"></div>
                 
                 <div className="card-actions">
-                  {item.isAvailable ? (
+                  {item.availableCount > 0 ? (
                     <div className="status-indicator success">
                       <CheckCircle2 size={18} />
-                      <span>Available</span>
+                      <span>{item.availableCount} Available</span>
                     </div>
                   ) : (
                     <div className="status-indicator error">
                       <XCircle size={18} />
-                      <span>Checked Out</span>
+                      <span>Out of Stock</span>
                     </div>
                   )}
                   
-                  <button className="btn-reserve" disabled={!item.isAvailable}>
+                  <button className="btn-reserve" disabled={item.availableCount === 0}>
                     Reserve
                   </button>
                 </div>
