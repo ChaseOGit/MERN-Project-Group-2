@@ -1,9 +1,14 @@
-import api from '../services/api'; // Import your custom axios instance!
+import { useState, useEffect } from 'react'; 
+
+
+import { MapPin, Clock, CheckCircle2, XCircle } from 'lucide-react';
+
+import api from '../services/api'; 
 
 export default function Home() {
   const [items, setItems] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [isLoading, setIsLoading] = useState(true); // Add a loading state
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Fetch REAL data from your backend
