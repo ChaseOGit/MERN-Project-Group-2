@@ -42,10 +42,13 @@ app.get('/api/status', (req, res) => {
     res.json({ message: "API is working perfectly!", success: true });
 });
 
-// Remote Database Connection
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("MongoDB Atlas Connected successfully"))
-    .catch((err) => console.log("Database connection failed: ", err));
+const deviceRoutes = require('./routes/deviceRoutes');
+app.use('/api/devices', deviceRoutes);
+
+const connectDB = require('./config/Db'); // Import your teammate's file
+
+// Connect to the database
+connectDB();
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

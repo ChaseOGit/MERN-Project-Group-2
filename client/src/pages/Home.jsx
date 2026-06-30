@@ -1,17 +1,23 @@
-import { useState, useEffect } from 'react';
-import { MapPin, Clock, CheckCircle2, XCircle } from 'lucide-react';
-import mockItems from '../mockData/items.json';
-// import api from '../services/api'; //  use this when the backend is done
+import api from '../services/api'; // Import your custom axios instance!
 
 export default function Home() {
   const [items, setItems] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [isLoading, setIsLoading] = useState(true); // Add a loading state
 
   useEffect(() => {
-    // When backend is done, change this to:
-    // api.get('/items').then(res => setItems(res.data.data)).catch(err => console.error(err));
-    setItems(mockItems);
+    // Fetch REAL data from your backend
+    api.get('/devices')
+      .then(response => {
+        setItems(response.data.data); // Axios puts JSON in .data, and our API standard wraps it in { data: [...] }
+        setIsLoading(false);
+      })
+      .catch(error => {
+        console.error("Error fetching items:", error);
+        setIsLoading(false);
+      });
   }, []);
+
 
   const filteredItems = activeCategory === "All" 
     ? items 
