@@ -211,8 +211,8 @@ export default function Home() {
                 <div className="card-content">
                   <h3 className="card-title">{item.name}</h3>
                   
-                  {/* ✨ NEW: Role Restriction Warning Badge */}
-                  {item.restrictedTo !== "All" && (
+                  {/* Ensure restrictedTo actually exists and isn't "All" before showing badge */}
+                  {(item.restrictedTo && item.restrictedTo !== "All") && (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '1rem' }}>
                       <ShieldAlert size={14} /> Restricted: {item.restrictedTo} Only
                     </div>

@@ -6,15 +6,14 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch our mock user and their populated rentals
   const fetchUserData = () => {
     const storedUser = JSON.parse(localStorage.getItem('user'));
     if (!storedUser) {
-      return window.location.href = '/login'; // Kick them out if not logged in
+      window.location.href = '/login';
+      return;
     }
 
     setIsLoading(true);
-    // Fetch this specific user's populated data
     api.get(`/users/${storedUser._id}`)
       .then(res => {
         setUser(res.data.data);
@@ -32,26 +31,35 @@ export default function Dashboard() {
 
   const handleReturn = async (deviceId) => {
     try {
-      // Send the deviceId and our mock userId to the backend team's return route!
       const response = await api.post('/rentals/return', {
         deviceId: deviceId,
         userId: user._id
       });
       
-      alert(response.data.message); // Show success message
-      fetchUserData(); // Refresh the dashboard to remove the item from the list
+      alert(response.data.message); 
+      fetchUserData(); 
     } catch (error) {
       alert(error.response?.data?.message || "Failed to return device");
     }
   };
 
-  if (isLoading) return <main className="main-layout" style={{ textAlign: "center", padding: "4rem" }}><h2>Loading Dashboard...</h2></main>;
+  //  Wait for the user to load before rendering the page
+  if (isLoading) {
+    return <main className="main-layout" style={{ textAlign: "center", padding: "4rem" }}><h2>Loading Dashboard...</h2></main>;
+  }
+
+  // If user failed to fetch, show an error
+  if (!user) {
+    return <main className="main-layout" style={{ textAlign: "center", padding: "4rem" }}><h2>Error loading user profile. Try logging in again.</h2></main>;
+  }
 
   return (
     <main className="main-layout">
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ marginBottom: '0.5rem' }}>Welcome, {user.username}!</h1>
+        {/* FIXED: Changed user.username to user.name to match teammate's schema! */}
+        <h1 style={{ marginBottom: '0.5rem' }}>Welcome, {user.name}!</h1>
         <p style={{ color: 'var(--text-muted)' }}>Student Email: {user.email}</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>UCF ID: {user.StudentIdNumber}</p>
       </div>
 
       <section>
@@ -59,7 +67,8 @@ export default function Dashboard() {
           <Package size={24} /> My Active Rentals
         </h2>
         
-        {user.activeRentals.length === 0 ? (
+        {/* Check if activeRentals array is empty */}
+        {!user.activeRentals || user.activeRentals.length === 0 ? (
           <div className="tech-card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             You do not currently have any devices checked out.
           </div>
