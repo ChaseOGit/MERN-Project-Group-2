@@ -15,7 +15,7 @@ router.post('/debug-register', async (req, res) => {
         user = new User({ 
             name: name || "Debug User", 
             email: email, 
-            role: role || "student",
+            role: role || "Student",
             StudentIdNumber: "DEBUG-" + Math.floor(Math.random() * 1000000) // Fulfills teammate's schema requirement
         });
         
