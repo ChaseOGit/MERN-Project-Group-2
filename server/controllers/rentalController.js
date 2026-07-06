@@ -1,4 +1,4 @@
-const Device = require('../models/device');
+const Device = require('../models/Device');
 const User = require('../models/Users');
 
 
