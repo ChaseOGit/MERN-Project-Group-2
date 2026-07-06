@@ -1,5 +1,5 @@
-const Device = require('../models/Device');
-const User = require('../models/User');
+const Device = require('../models/device');
+const User = require('../models/Users');
 
 
 exports.rentDevice = async (req,res) => { // Post - Rent a device to a student

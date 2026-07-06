@@ -17,8 +17,7 @@ const userSchema = new mongoose.Schema({
     },
 
     password:{
-        type: String,
-        required: true
+        type: String, // Oauth doesn't require a password, but local auth does. This is why it's not required.
     },
     
     StudentIdNumber:{
@@ -29,8 +28,8 @@ const userSchema = new mongoose.Schema({
 
     role: {
         type: String,
-        enum: ['student', 'faculty', 'admin'],
-        default: 'student'
+        enum: ['Student', 'Faculty', 'Admin'],
+        default: 'Student'
     },
 
     activeRentals: [{
