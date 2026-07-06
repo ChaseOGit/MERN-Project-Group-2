@@ -3,41 +3,13 @@ const router = express.Router();
 const Device = require('../models/device'); // use lowercase 'd' here
 
 /**
-* @swagger
+ * @swagger
  * /api/devices:
- *   post:
- *     summary: Add a new device
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - category
- *               - serialNumber
- *               - location
- *               - loanPeriod
- *               - overdueFeeRate
- *             properties:
- *               name:
- *                 type: string
- *               category:
- *                 type: string
- *               serialNumber:
- *                 type: string
- *               location:
- *                 type: string
- *               loanPeriod:
- *                 type: string
- *               overdueFeeRate:
- *                 type: number
- *               image:
- *                 type: string
+ *   get:
+ *     summary: Retrieve a list of all devices
  *     responses:
- *       201:
- *         description: Device created successfully
+ *       200:
+ *         description: A list of devices.
  */
 router.get('/', async (req, res) => {
     try {
@@ -53,6 +25,30 @@ router.get('/', async (req, res) => {
  * /api/devices:
  *   post:
  *     summary: Add a new device
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - category
+ *               - overdueFeeRate
+ *             properties:
+ *               name:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               serialNumber:
+ *                 type: string
+ *               overdueFeeRate:
+ *                 type: number
+ *               isAvailable:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Device created successfully.
  */
 router.post('/', async (req, res) => {
     try {
@@ -93,6 +89,82 @@ router.get('/seed', async (req, res) => {
         res.json({ success: true, message: "Database seeded successfully with new UCF requirements!" });
     } catch (error) {
         res.status(500).json({ success: false, message: "Seeding failed: " + error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/devices/{id}:
+ *   put:
+ *     summary: Update an existing device by ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The device ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Device updated successfully
+ *       404:
+ *         description: Device not found
+ */
+router.put('/:id', async (req, res) => {
+    try {
+        // findByIdAndUpdate takes the ID from the URL, applies the changes from req.body,
+        // and { new: true } ensures it returns the updated version of the device.
+        const updatedDevice = await Device.findByIdAndUpdate(
+            req.params.id, 
+            req.body, 
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedDevice) {
+            return res.status(404).json({ success: false, message: "Device not found" });
+        }
+
+        res.json({ success: true, data: updatedDevice });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/devices/{id}:
+ *   delete:
+ *     summary: Delete a device by ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The device ID
+ *     responses:
+ *       200:
+ *         description: Device deleted successfully
+ *       404:
+ *         description: Device not found
+ */
+router.delete('/:id', async (req, res) => {
+    try {
+        const deletedDevice = await Device.findByIdAndDelete(req.params.id);
+
+        if (!deletedDevice) {
+            return res.status(404).json({ success: false, message: "Device not found" });
+        }
+
+        res.json({ success: true, message: "Device removed from inventory successfully" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error" });
     }
 });
 
