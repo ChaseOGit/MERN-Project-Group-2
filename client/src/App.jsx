@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import './App.css';
+import Dashboard from './pages/Dashboard';
+import './App.css'; 
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -24,17 +25,14 @@ function App() {
   return (
     <Router>
       <div className="app-wrapper">
-        {/* Navbar stays at the top of every page */}
         <Navbar theme={theme} toggleTheme={toggleTheme} />
         
-        {/* Routes swap out the main content based on the URL */}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           
-          {/* create these later */}
-          {/* <Route path="/dashboard" element={<UserDashboard />} /> */}
-          {/* <Route path="/admin" element={<AdminDashboard />} /> */}
+          {/* Updated the element to match our actual Dashboard component */}
+          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </div>
     </Router>

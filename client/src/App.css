@@ -313,3 +313,6 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.spin-animation { animation: spin 1s linear infinite; }

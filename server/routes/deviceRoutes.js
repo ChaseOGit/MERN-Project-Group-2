@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Device = require('../models/device'); // use lowercase 'd' here
+const Device = require('../models/Device'); // use lowercase 'd' here
 
 /**
  * @swagger

@@ -45,6 +45,12 @@ app.get('/api/status', (req, res) => {
 const deviceRoutes = require('./routes/deviceRoutes');
 app.use('/api/devices', deviceRoutes);
 
+const rentalRoutes = require('./routes/rentalRoutes');
+app.use('/api/rentals', rentalRoutes);
+
+const userRoutes = require('./routes/userRoutes');
+app.use('/api/users', userRoutes);
+
 const connectDB = require('./config/Db'); // Import your teammate's file
 
 // Connect to the database
