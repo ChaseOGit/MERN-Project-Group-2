@@ -6,14 +6,39 @@ const Device = require('../models/device'); // use lowercase 'd' here
  * @swagger
  * /api/devices:
  *   get:
- *     summary: Retrieve a list of all devices
+ *     summary: Retrieve a filtered list of all devices
+ *     parameters:
+ *       - in: query
+ *         name: location
+ *         schema:
+ *           type: string
+ *         description: Filter devices by library location (e.g., "John C. Hitt Library")
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter devices by category (e.g., "Laptops")
  *     responses:
  *       200:
- *         description: A list of devices.
+ *         description: A filtered list of devices.
  */
 router.get('/', async (req, res) => {
     try {
-        const devices = await Device.find({});
+        // Create an empty filter object
+        let filters = {};
+
+        // If the user appended ?location=... to the URL, add it to our MongoDB query
+        if (req.query.location) {
+            filters.location = req.query.location;
+        }
+
+        // If the user appended ?category=... to the URL, add it to our MongoDB query
+        if (req.query.category) {
+            filters.category = req.query.category;
+        }
+
+        // Pass the filters object directly into .find()
+        const devices = await Device.find(filters);
         res.json({ success: true, data: devices });
     } catch (error) {
         res.status(500).json({ success: false, message: "Server Error" });
@@ -34,6 +59,9 @@ router.get('/', async (req, res) => {
  *             required:
  *               - name
  *               - category
+ *               - serialNumber
+ *               - location
+ *               - loanPeriod
  *               - overdueFeeRate
  *             properties:
  *               name:
@@ -41,6 +69,10 @@ router.get('/', async (req, res) => {
  *               category:
  *                 type: string
  *               serialNumber:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *               loanPeriod:
  *                 type: string
  *               overdueFeeRate:
  *                 type: number
@@ -59,7 +91,6 @@ router.post('/', async (req, res) => {
         res.status(400).json({ success: false, message: error.message });
     }
 });
-
 
 router.get('/seed', async (req, res) => {
     const mockDevices = [
@@ -118,8 +149,6 @@ router.get('/seed', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
     try {
-        // findByIdAndUpdate takes the ID from the URL, applies the changes from req.body,
-        // and { new: true } ensures it returns the updated version of the device.
         const updatedDevice = await Device.findByIdAndUpdate(
             req.params.id, 
             req.body, 
