@@ -10,11 +10,13 @@ export default function Home() {
   useEffect(() => {
     api.get('/devices')
       .then(response => {
-        setItems(response.data.data); 
+        const fetchedData = response.data?.data || [];
+        setItems(fetchedData); 
         setIsLoading(false);
       })
       .catch(error => {
         console.error("Error fetching devices:", error);
+        setItems([]); // SAFEGUARD: Prevent crash on network error
         setIsLoading(false);
       });
   }, []);
