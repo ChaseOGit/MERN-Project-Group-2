@@ -3,13 +3,41 @@ const router = express.Router();
 const Device = require('../models/device'); // use lowercase 'd' here
 
 /**
- * @swagger
+* @swagger
  * /api/devices:
- *   get:
- *     summary: Retrieve a list of all devices
+ *   post:
+ *     summary: Add a new device
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - category
+ *               - serialNumber
+ *               - location
+ *               - loanPeriod
+ *               - overdueFeeRate
+ *             properties:
+ *               name:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               serialNumber:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *               loanPeriod:
+ *                 type: string
+ *               overdueFeeRate:
+ *                 type: number
+ *               image:
+ *                 type: string
  *     responses:
- *       200:
- *         description: A list of devices.
+ *       201:
+ *         description: Device created successfully
  */
 router.get('/', async (req, res) => {
     try {
