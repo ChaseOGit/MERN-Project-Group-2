@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import './App.css';
+import Dashboard from './pages/Dashboard';
+import './App.css'; 
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -37,12 +38,17 @@ function App() {
           setActiveLocation={setActiveLocation}
         />
 
+        <Navbar theme={theme} toggleTheme={toggleTheme} />
+        
         <Routes>
           <Route
             path="/"
             element={<Home activeLocation={activeLocation} />}
           />
           <Route path="/login" element={<Login />} />
+          
+          {/* Updated the element to match our actual Dashboard component */}
+          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </div>
     </Router>
