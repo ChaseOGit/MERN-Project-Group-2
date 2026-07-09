@@ -7,11 +7,17 @@ import './App.css';
 
 function App() {
   const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    ) {
       return 'dark';
     }
+
     return 'light';
   });
+
+  const [activeLocation, setActiveLocation] = useState("All");
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -24,17 +30,19 @@ function App() {
   return (
     <Router>
       <div className="app-wrapper">
-        {/* Navbar stays at the top of every page */}
-        <Navbar theme={theme} toggleTheme={toggleTheme} />
-        
-        {/* Routes swap out the main content based on the URL */}
+        <Navbar
+          theme={theme}
+          toggleTheme={toggleTheme}
+          activeLocation={activeLocation}
+          setActiveLocation={setActiveLocation}
+        />
+
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route
+            path="/"
+            element={<Home activeLocation={activeLocation} />}
+          />
           <Route path="/login" element={<Login />} />
-          
-          {/* create these later */}
-          {/* <Route path="/dashboard" element={<UserDashboard />} /> */}
-          {/* <Route path="/admin" element={<AdminDashboard />} /> */}
         </Routes>
       </div>
     </Router>
