@@ -25,6 +25,7 @@ export default function Navbar({
       <div className="nav-actions">
         <div className="nav-location-dropdown">
           <button
+            type="button"
             className="nav-location-btn"
             onClick={() => setIsLocationOpen(!isLocationOpen)}
           >
@@ -37,18 +38,17 @@ export default function Navbar({
 
           {isLocationOpen && (
             <div className="nav-location-menu">
-              {["All", "John C. Hitt Library", "Rosen Library"].map(
-                (location) => (
-                  <button
-                    key={location}
-                    className={activeLocation === location ? "active" : ""}
-                    onClick={() => handleLocationSelect(location)}
-                  >
-                    <Building2 size={16} />
-                    {location === "All" ? "All Locations" : location}
-                  </button>
-                )
-              )}
+              {["All", "John C. Hitt Library", "Rosen Library"].map((location) => (
+                <button
+                  type="button"
+                  key={location}
+                  className={activeLocation === location ? "active" : ""}
+                  onClick={() => handleLocationSelect(location)}
+                >
+                  <Building2 size={16} />
+                  {location === "All" ? "All Locations" : location}
+                </button>
+              ))}
             </div>
 import { Link } from 'react-router-dom';
 import { Sun, Moon, User, LogOut } from 'lucide-react';
@@ -90,7 +90,7 @@ export default function Navbar({ theme, toggleTheme }) {
           )}
         </div>
 
-        <button className="theme-toggle" onClick={toggleTheme}>
+        <button type="button" className="theme-toggle" onClick={toggleTheme}>
           {theme === "light" ? <Moon size={24} /> : <Sun size={24} />}
         </button>
 
