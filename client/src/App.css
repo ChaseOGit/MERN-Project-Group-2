@@ -1,23 +1,23 @@
-/* --- THEME VARIABLES & UCF BRANDING --- */
+/* --- THEME VARIABLES & OFFICIAL UCF BRANDING --- */
 :root {
   /* Official UCF Colors */
   --ucf-gold: #FFC904;
   --ucf-gold-hover: #E5B400;
   --ucf-black: #000000;
   
-  /* Light Mode Base */
-  --bg-app: #F3F4F6;
+  /* Light Mode Base - Clean, Neutral Whites/Grays */
+  --bg-app: #F5F6FA;
   --bg-surface: #FFFFFF;
-  --text-main: #111827;
-  --text-muted: #6B7280;
-  --border-color: #E5E7EB;
+  --text-main: #000000;
+  --text-muted: #555555;
+  --border-color: #E0E0E0;
   
   /* Status Colors */
-  --success-color: #10B981;
+  --success-color: #059669;
   --success-bg: #D1FAE5;
-  --error-color: #EF4444;
+  --error-color: #DC2626;
   --error-bg: #FEE2E2;
-  --warning-color: #F59E0B;
+  --warning-color: #D97706;
   --warning-bg: #FEF3C7;
 
   --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
@@ -26,17 +26,19 @@
 }
 
 [data-theme='dark'] {
-  --bg-app: #0F172A;
-  --bg-surface: #1E293B;
-  --text-main: #F9FAFB;
-  --text-muted: #94A3B8;
-  --border-color: #334155;
+  /* UCF True Dark Mode - Pure Blacks & Charcoal, NO BLUE TINTS! */
+  --bg-app: #000000;
+  --bg-surface: #141414;
+  --text-main: #FFFFFF;
+  --text-muted: #A0A0A0;
+  --border-color: #2A2A2A;
   
-  --success-bg: rgba(16, 185, 129, 0.15);
-  --error-bg: rgba(239, 68, 68, 0.15);
-  --warning-bg: rgba(245, 158, 11, 0.15);
+  /* Adjusted Status Colors for Dark Mode Contrast */
+  --success-bg: rgba(5, 150, 105, 0.15);
+  --error-bg: rgba(220, 38, 38, 0.15);
+  --warning-bg: rgba(217, 119, 6, 0.15);
   
-  --shadow-md: 0 10px 15px -3px rgba(0,0,0,0.5);
+  --shadow-md: 0 10px 15px -3px rgba(0,0,0,0.8);
 }
 
 /* --- BASE STYLES --- */
@@ -69,10 +71,12 @@ body {
 .brand-text { color: #FFFFFF; }
 .nav-actions { display: flex; align-items: center; gap: 1rem; }
 
+/* FIXED: flex-shrink: 0 forces it to stay a perfect circle */
 .theme-toggle {
   background: transparent; border: 1px solid #333; color: #FFF;
   border-radius: 50%; width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center; cursor: pointer;
+  flex-shrink: 0; padding: 0; transition: var(--transition);
 }
 .theme-toggle:hover { border-color: var(--ucf-gold); color: var(--ucf-gold); }
 
@@ -81,16 +85,18 @@ body {
   background-color: var(--ucf-gold); color: var(--ucf-black);
   border: none; padding: 0.6rem 1.5rem; font-weight: 700;
   border-radius: 8px; cursor: pointer; transition: var(--transition);
+  display: flex; align-items: center; justify-content: center;
 }
 .btn-primary:hover:not(:disabled) { background-color: var(--ucf-gold-hover); transform: translateY(-1px); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* --- SEARCH & CONTROLS --- */
+/* FIXED: Changed from CSS Grid to Flexbox so the dropdown doesn't stretch artificially */
 .controls-bar {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem; margin-bottom: 1.5rem; align-items: center;
+  display: flex; flex-wrap: wrap; gap: 1rem; 
+  margin-bottom: 1.5rem; align-items: center; justify-content: space-between;
 }
-.search-wrapper { position: relative; width: 100%; }
+.search-wrapper { flex: 1 1 300px; position: relative; }
 .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 .search-input {
   width: 100%; padding: 0.85rem 2.5rem; border-radius: 12px;
@@ -103,16 +109,19 @@ body {
   position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
   background: none; border: none; cursor: pointer; color: var(--text-muted);
 }
-.filter-dropdowns { display: flex; gap: 0.75rem; width: 100%; }
+/* FIXED: No flex-grow, so dropdown stays exactly as wide as its text */
+.filter-dropdowns { display: flex; gap: 0.75rem; flex: 0 0 auto; align-items: center; }
 .location-select {
-  flex-grow: 1; padding: 0.85rem 1rem; border-radius: 12px;
+  padding: 0.85rem 1.25rem; border-radius: 12px;
   border: 1px solid var(--border-color); background: var(--bg-surface);
   color: var(--text-main); cursor: pointer; font-size: 1rem; box-shadow: var(--shadow-sm);
+  width: auto; min-width: max-content;
 }
 .refresh-btn {
   padding: 0.85rem; border-radius: 12px; border: 1px solid var(--border-color);
   background: var(--bg-surface); color: var(--text-main); cursor: pointer;
   display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
 }
 .refresh-btn:hover { border-color: var(--ucf-gold); color: var(--ucf-gold); }
 
@@ -147,7 +156,7 @@ body {
 
 .card-image-wrapper { height: 220px; background-color: #FFFFFF; position: relative; padding: 1rem; border-bottom: 1px solid var(--border-color); }
 .card-image { width: 100%; height: 100%; object-fit: contain; }
-[data-theme='dark'] .card-image-wrapper { background-color: #E2E8F0; } /* Keep images on light bg to mimic product shots */
+[data-theme='dark'] .card-image-wrapper { background-color: #1A1A1A; } 
 
 .category-badge {
   position: absolute; top: 1rem; right: 1rem; background: var(--ucf-black);
@@ -160,7 +169,7 @@ body {
 .restriction-badge {
   display: inline-flex; align-items: center; gap: 6px; background: var(--error-bg);
   color: var(--error-color); padding: 6px 10px; border-radius: 6px;
-  font-size: 0.8rem; font-weight: 700; margin-bottom: 1rem; border: 1px solid rgba(239, 68, 68, 0.3);
+  font-size: 0.8rem; font-weight: 700; margin-bottom: 1rem; border: 1px solid rgba(220, 38, 38, 0.3);
 }
 
 .card-meta { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.25rem; }
@@ -183,20 +192,20 @@ body {
   padding: 0.75rem 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: var(--transition);
   display: flex; align-items: center; justify-content: center; width: 100%; font-size: 1rem;
 }
-.btn-reserve:not(:disabled):hover { background-color: var(--text-main); color: var(--bg-surface); }
+.btn-reserve:not(:disabled):hover { background-color: var(--text-main); color: var(--bg-surface); border-color: var(--text-main); }
 .btn-reserve:disabled { opacity: 0.4; cursor: not-allowed; border-color: var(--border-color); color: var(--text-muted); }
 
 /* --- MODAL (Glassmorphism) --- */
 .modal-backdrop {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000;
-  background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px);
+  background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
   animation: fadeIn 0.2s ease-out;
 }
 .modal-content {
   background-color: var(--bg-surface); color: var(--text-main); padding: 2.5rem;
   border-radius: 20px; max-width: 500px; width: 90%; border: 1px solid var(--border-color);
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); position: relative;
   border-top: 6px solid var(--ucf-gold);
 }
 .modal-info-box {
