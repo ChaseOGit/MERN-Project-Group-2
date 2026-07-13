@@ -17,8 +17,7 @@ const userSchema = new mongoose.Schema({
     },
 
     password:{
-        type: String,
-        required: true
+        type: String, // Oauth doesn't require a password, but local auth does. This is why it's not required.
     },
     
     StudentIdNumber:{
@@ -29,8 +28,8 @@ const userSchema = new mongoose.Schema({
 
     role: {
         type: String,
-        enum: ['student', 'faculty', 'admin'],
-        default: 'student'
+        enum: ['Student', 'Faculty', 'Admin'],
+        default: 'Student'
     },
 
     activeRentals: [{
@@ -38,16 +37,5 @@ const userSchema = new mongoose.Schema({
         ref: 'Device'
     }]
 }, {timestamps: true});
-
-const bcrypt = require('bcrypt');
-
-userSchema.pre('save', async function(next) {
-    // Only hash the password if it has been modified (or is new)
-    if (!this.isModified('password')) return next();
-
-    // Hash the password with a salt round of 10
-    this.password = await bcrypt.hash(this.password, 10);
-    next();
-});
 
 module.exports = mongoose.model('User', userSchema);
