@@ -92,7 +92,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🚀 DELETE DEVICE
+  // DELETE DEVICE
   const handleDelete = async (id, name) => {
     if (window.confirm(`Are you sure you want to permanently delete this ${name}?`)) {
       try {
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🚀 UPDATE EXISTING DEVICE
+  // UPDATE EXISTING DEVICE
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
