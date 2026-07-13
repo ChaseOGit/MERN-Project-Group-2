@@ -1,18 +1,16 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ShieldAlert, Wand2, Plus, Package, List, Edit, Trash2, X } from 'lucide-react';
+import { ShieldAlert, Wand2, Plus, Package, List, Edit, Trash2, X, PackagePlus } from 'lucide-react';
 import api from '../services/api';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('add'); // 'add' or 'manage'
+  const [activeTab, setActiveTab] = useState('add'); 
   
-  // Inventory State for the Manage Tab
   const [inventory, setInventory] = useState([]);
   const [editingDevice, setEditingDevice] = useState(null);
 
-  // Form State
   const [formData, setFormData] = useState({
     name: '', category: 'Laptops', serialNumber: '', location: 'John C. Hitt Library',
     loanPeriod: '7 Days', restrictedTo: 'All', overdueFeeRate: 15, description: '', image: ''
@@ -20,23 +18,10 @@ export default function AdminDashboard() {
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // SECURITY CHECK & INITIAL FETCH
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem('user'));
-    if (!storedUser || storedUser.role !== 'Admin') {
-      alert("Access Denied: You must be an Admin to view this page.");
-      window.location.href = '/';
-    } else {
-      setUser(storedUser);
-      fetchInventory();
-    }
-  }, []);
-
-// 1. Define the fetch function FIRST (and add safety fallbacks)
+  // 1. Define fetch first
   const fetchInventory = async () => {
     try {
       const res = await api.get('/devices');
-      // Use optional chaining just in case the API responds differently
       const fetchedData = res.data?.data || []; 
       setInventory(fetchedData);
       setIsLoading(false);
@@ -46,7 +31,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 2. SECURITY CHECK & INITIAL FETCH
+  // 2. Security Check
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem('user'));
     if (!storedUser || storedUser.role !== 'Admin') {
@@ -54,7 +39,7 @@ export default function AdminDashboard() {
       window.location.href = '/';
     } else {
       setUser(storedUser);
-      fetchInventory(); // Now it knows exactly what this function is!
+      fetchInventory();
     }
   }, []);
 
@@ -69,7 +54,7 @@ export default function AdminDashboard() {
       const products = response.data.products;
       if (products.length > 0) {
         setFormData(prev => ({ ...prev, name: products[0].title, description: products[0].description, image: products[0].thumbnail }));
-        alert(`Successfully found specs for: ${products[0].title}!`);
+        alert(`Successfully found specs for: ${products[0].title}`);
       } else {
         alert("No products found in external database.");
       }
@@ -80,26 +65,37 @@ export default function AdminDashboard() {
     }
   };
 
-  // BULK ADD DEVICES (Comma-separated serials)
+  // ADD MORE STOCK BUTTON LOGIC
+  const handleAddMoreStock = (item) => {
+    setFormData({
+      name: item.name,
+      category: item.category,
+      serialNumber: '', // Leave blank so admin can type the new ones
+      location: item.location,
+      loanPeriod: item.loanPeriod,
+      restrictedTo: item.restrictedTo,
+      overdueFeeRate: item.overdueFeeRate,
+      description: item.description,
+      image: item.image
+    });
+    setActiveTab('add'); // Switch back to add tab
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top
+  };
+
+  // BULK ADD DEVICES
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Split serial numbers by comma and remove extra spaces
     const serials = formData.serialNumber.split(',').map(s => s.trim()).filter(s => s);
-    
     try {
       let successCount = 0;
       for (const sn of serials) {
         await api.post('/devices', { ...formData, serialNumber: sn });
         successCount++;
       }
-      
       alert(`Success, Added ${successCount} device(s) to inventory.`);
-      
-      // Reset Form
       setFormData({ name: '', category: 'Laptops', serialNumber: '', location: 'John C. Hitt Library', loanPeriod: '7 Days', restrictedTo: 'All', overdueFeeRate: 15, description: '', image: '' });
-      fetchInventory(); // Update the table
+      fetchInventory(); 
     } catch (error) {
       alert(error.response?.data?.message || "Failed to add one or more devices. Check if a Serial Number is already in use.");
     } finally {
@@ -136,6 +132,7 @@ export default function AdminDashboard() {
 
   return (
     <main className="main-layout">
+      {/* HEADER & TABS */}
       <div style={{ marginBottom: '2rem', borderBottom: '2px solid var(--border-color)', paddingBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '0 0 0.5rem 0' }}>
@@ -143,23 +140,11 @@ export default function AdminDashboard() {
           </h1>
           <p style={{ color: 'var(--text-muted)', margin: 0 }}>Authorized Access Only. Logged in as: {user.name}</p>
         </div>
-        
-        {/* TABS CONTROLS */}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button 
-            onClick={() => setActiveTab('add')} 
-            className={`btn-primary ${activeTab === 'add' ? '' : 'btn-nav-outline'}`}
-            style={{ color: activeTab === 'add' ? '#000' : 'var(--text-main)', borderColor: activeTab === 'add' ? 'transparent' : 'var(--border-color)', background: activeTab === 'add' ? 'var(--ucf-gold)' : 'transparent' }}
-          >
+          <button onClick={() => setActiveTab('add')} className={`btn-primary ${activeTab === 'add' ? '' : 'btn-nav-outline'}`} style={{ color: activeTab === 'add' ? '#000' : 'var(--text-main)', borderColor: activeTab === 'add' ? 'transparent' : 'var(--border-color)', background: activeTab === 'add' ? 'var(--ucf-gold)' : 'transparent' }}>
             <Plus size={18} style={{ marginRight: '6px' }}/> Add Devices
           </button>
-          
-          {/* refreshes the inventory on click */}
-          <button 
-            onClick={() => { setActiveTab('manage'); fetchInventory(); }} 
-            className={`btn-primary ${activeTab === 'manage' ? '' : 'btn-nav-outline'}`}
-            style={{ color: activeTab === 'manage' ? '#000' : 'var(--text-main)', borderColor: activeTab === 'manage' ? 'transparent' : 'var(--border-color)', background: activeTab === 'manage' ? 'var(--ucf-gold)' : 'transparent' }}
-          >
+          <button onClick={() => { setActiveTab('manage'); fetchInventory(); }} className={`btn-primary ${activeTab === 'manage' ? '' : 'btn-nav-outline'}`} style={{ color: activeTab === 'manage' ? '#000' : 'var(--text-main)', borderColor: activeTab === 'manage' ? 'transparent' : 'var(--border-color)', background: activeTab === 'manage' ? 'var(--ucf-gold)' : 'transparent' }}>
             <List size={18} style={{ marginRight: '6px' }}/> Manage Inventory
           </button>
         </div>
@@ -171,7 +156,6 @@ export default function AdminDashboard() {
           <div className="tech-card" style={{ padding: '2rem', height: 'fit-content' }}>
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}><Package size={24} /> Add New Devices</h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              
               <div>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Device Name / Model</label>
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
@@ -181,67 +165,30 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               </div>
-
               <div>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Serial Number(s)</label>
                 <p style={{ margin: '0.25rem 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>To add multiple items at once, separate serial numbers with a comma.</p>
                 <textarea name="serialNumber" required value={formData.serialNumber} onChange={handleChange} placeholder="e.g. SN-001, SN-002, SN-003" rows="2" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} />
               </div>
-
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 140px' }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Category</label>
-                  <select name="category" value={formData.category} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="Laptops">Laptops</option><option value="Cameras">Cameras</option><option value="Accessories">Accessories</option>
-                  </select>
-                </div>
-                <div style={{ flex: '1 1 140px' }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Location</label>
-                  <select name="location" value={formData.location} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="John C. Hitt Library">John C. Hitt Library</option><option value="Downtown Campus">Downtown Campus</option><option value="Rosen College">Rosen College</option>
-                  </select>
-                </div>
+                <div style={{ flex: '1 1 140px' }}><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Category</label><select name="category" value={formData.category} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}><option value="Laptops">Laptops</option><option value="Cameras">Cameras</option><option value="Accessories">Accessories</option></select></div>
+                <div style={{ flex: '1 1 140px' }}><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Location</label><select name="location" value={formData.location} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}><option value="John C. Hitt Library">John C. Hitt Library</option><option value="Downtown Campus">Downtown Campus</option><option value="Rosen College">Rosen College</option></select></div>
               </div>
-
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 100px' }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Loan Period</label>
-                  <select name="loanPeriod" value={formData.loanPeriod} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="4 Hours">4 Hours</option><option value="3 Days">3 Days</option><option value="7 Days">7 Days</option>
-                  </select>
-                </div>
-                <div style={{ flex: '1 1 100px' }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Restriction</label>
-                  <select name="restrictedTo" value={formData.restrictedTo} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="All">All</option><option value="Student">Student</option><option value="Faculty">Faculty</option><option value="Admin">Admin</option>
-                  </select>
-                </div>
-                <div style={{ flex: '1 1 100px' }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Fee ($/day)</label>
-                  <input type="number" name="overdueFeeRate" required value={formData.overdueFeeRate} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} />
-                </div>
+                <div style={{ flex: '1 1 100px' }}><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Loan Period</label><select name="loanPeriod" value={formData.loanPeriod} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}><option value="4 Hours">4 Hours</option><option value="3 Days">3 Days</option><option value="7 Days">7 Days</option></select></div>
+                <div style={{ flex: '1 1 100px' }}><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Restriction</label><select name="restrictedTo" value={formData.restrictedTo} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}><option value="All">All</option><option value="Student">Student</option><option value="Faculty">Faculty</option><option value="Admin">Admin</option></select></div>
+                <div style={{ flex: '1 1 100px' }}><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Fee ($/day)</label><input type="number" name="overdueFeeRate" required value={formData.overdueFeeRate} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} /></div>
               </div>
-
-              <div>
-                <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Description</label>
-                <textarea name="description" required value={formData.description} onChange={handleChange} rows="3" style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Image URL</label>
-                <input type="url" name="image" required value={formData.image} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} />
-              </div>
-
-              <button type="submit" disabled={isSubmitting} className="btn-primary" style={{ marginTop: '1rem' }}>
-                {isSubmitting ? "Processing..." : "Add to Library Inventory"}
-              </button>
+              <div><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Description</label><textarea name="description" required value={formData.description} onChange={handleChange} rows="3" style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} /></div>
+              <div><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Image URL</label><input type="url" name="image" required value={formData.image} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} /></div>
+              {formData.image && <div style={{ textAlign: 'center', marginTop: '1rem' }}><img src={formData.image} alt="Preview" style={{ maxHeight: '150px', borderRadius: '8px', border: '1px solid var(--border-color)' }} /></div>}
+              <button type="submit" disabled={isSubmitting} className="btn-primary" style={{ marginTop: '1rem' }}>{isSubmitting ? "Processing..." : "Add to Library Inventory"}</button>
             </form>
           </div>
-
           <div>
             <div className="tech-card" style={{ padding: '2rem', background: 'var(--ucf-black)', color: 'white', borderTop: '4px solid var(--ucf-gold)' }}>
               <h3 style={{ marginTop: 0 }}>API Integration Active</h3>
               <p style={{ color: '#CCC', lineHeight: 1.6 }}>This form is securely connected to our Third-Party API database. Type a keyword like <strong>"Macbook"</strong> or <strong>"Surface"</strong> into the Device Name box and click Auto-Fill.</p>
-              <p style={{ color: '#CCC', lineHeight: 1.6 }}>The API will automatically scrape the database and populate the Description and Image fields</p>
             </div>
           </div>
         </section>
@@ -251,7 +198,6 @@ export default function AdminDashboard() {
       {activeTab === 'manage' && (
         <section className="tech-card" style={{ padding: '2rem', overflowX: 'auto' }}>
           <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Current Library Inventory</h2>
-          
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted)' }}>
@@ -273,11 +219,16 @@ export default function AdminDashboard() {
                       {item.isAvailable ? "In Stock" : "Checked Out"}
                     </span>
                   </td>
+                  
+                  {/* 🚀 NEW: Added the "Add Stock" Button */}
                   <td style={{ padding: '1rem', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                    <button onClick={() => setEditingDevice(item)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', cursor: 'pointer' }}>
+                    <button onClick={() => handleAddMoreStock(item)} title="Add More of this Item" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--success-color)', background: 'var(--success-bg)', color: 'var(--success-color)', cursor: 'pointer' }}>
+                      <PackagePlus size={16} />
+                    </button>
+                    <button onClick={() => setEditingDevice(item)} title="Edit Details" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', cursor: 'pointer' }}>
                       <Edit size={16} />
                     </button>
-                    <button onClick={() => handleDelete(item._id, item.name)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #EF4444', background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', cursor: 'pointer' }}>
+                    <button onClick={() => handleDelete(item._id, item.name)} title="Delete Item" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #EF4444', background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', cursor: 'pointer' }}>
                       <Trash2 size={16} />
                     </button>
                   </td>
@@ -289,35 +240,59 @@ export default function AdminDashboard() {
         </section>
       )}
 
-      {/* ======================= EDIT MODAL ======================= */}
+      {/* ======================= FULLY EXPANDED EDIT MODAL ======================= */}
       {editingDevice && (
         <div className="modal-backdrop" onClick={() => setEditingDevice(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '95%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ margin: 0 }}>Edit Device</h2>
+              <h2 style={{ margin: 0 }}>Edit Device ({editingDevice.serialNumber})</h2>
               <button onClick={() => setEditingDevice(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)' }}><X size={24} /></button>
             </div>
             
             <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Device Name</label>
-                <input type="text" required value={editingDevice.name} onChange={(e) => setEditingDevice({...editingDevice, name: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+              
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 2 }}>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Device Name</label>
+                  <input type="text" required value={editingDevice.name || ''} onChange={(e) => setEditingDevice({...editingDevice, name: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Category</label>
+                  <select value={editingDevice.category || ''} onChange={(e) => setEditingDevice({...editingDevice, category: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
+                    <option value="Laptops">Laptops</option><option value="Cameras">Cameras</option><option value="Accessories">Accessories</option>
+                  </select>
+                </div>
               </div>
+
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Location</label>
-                  <select value={editingDevice.location} onChange={(e) => setEditingDevice({...editingDevice, location: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
+                  <select value={editingDevice.location || ''} onChange={(e) => setEditingDevice({...editingDevice, location: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
                     <option value="John C. Hitt Library">John C. Hitt Library</option><option value="Downtown Campus">Downtown Campus</option><option value="Rosen College">Rosen College</option>
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Restriction</label>
-                  <select value={editingDevice.restrictedTo} onChange={(e) => setEditingDevice({...editingDevice, restrictedTo: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
+                  <select value={editingDevice.restrictedTo || ''} onChange={(e) => setEditingDevice({...editingDevice, restrictedTo: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
                     <option value="All">All</option><option value="Student">Student</option><option value="Faculty">Faculty</option>
                   </select>
                 </div>
               </div>
-              <button type="submit" className="btn-primary" style={{ marginTop: '1rem' }}>Save Changes</button>
+
+              <div>
+                <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Description</label>
+                <textarea required value={editingDevice.description || ''} onChange={(e) => setEditingDevice({...editingDevice, description: e.target.value})} rows="4" style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Image URL</label>
+                <input type="url" required value={editingDevice.image || ''} onChange={(e) => setEditingDevice({...editingDevice, image: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setEditingDevice(null)} className="btn-cancel">Cancel</button>
+                <button type="submit" className="btn-primary">Save Changes</button>
+              </div>
             </form>
           </div>
         </div>
