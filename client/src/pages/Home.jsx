@@ -209,8 +209,8 @@ export default function Home() {
 
       {/* --- UNIFIED CATEGORY PILLS --- */}
       <section>
-        <div className="category-group" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
-          {/* Reduced from 12 messy categories to 7 clean logical ones */}
+        <div className="category-group">
+          {/* Catagories */}
           {["All", "Laptops", "Tablets", "Cameras", "Audio & Video", "Calculators", "Accessories"].map(cat => (
             <button key={cat} className={`filter-btn ${activeCategory === cat ? "active" : ""}`} onClick={() => setActiveCategory(cat)}>
               {getCategoryIcon(cat)} {cat}
