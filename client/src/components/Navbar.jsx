@@ -27,7 +27,7 @@ export default function Navbar({ theme, toggleTheme }) {
               <Link to="/dashboard" className="btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center', textDecoration: 'none' }}>
                 <User size={18} /> Dashboard
               </Link>
-              <button onClick={handleLogout} className="btn-reserve" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button onClick={handleLogout} className="btn-nav-outline" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <LogOut size={18} /> Logout
               </button>
             </>

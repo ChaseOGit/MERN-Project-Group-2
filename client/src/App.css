@@ -90,6 +90,25 @@ body {
 .btn-primary:hover:not(:disabled) { background-color: var(--ucf-gold-hover); transform: translateY(-1px); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
+.btn-nav-outline {
+  background-color: transparent; 
+  color: #FFFFFF; 
+  border: 2px solid #FFFFFF;
+  padding: 0.55rem 1.25rem; 
+  font-weight: 700; 
+  border-radius: 8px; 
+  cursor: pointer; 
+  transition: var(--transition);
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+}
+.btn-nav-outline:hover { 
+  background-color: var(--ucf-gold); 
+  color: var(--ucf-black); 
+  border-color: var(--ucf-gold); 
+}
+
 /* --- SEARCH & CONTROLS --- */
 /* FIXED: Changed from CSS Grid to Flexbox so the dropdown doesn't stretch artificially */
 .controls-bar {
