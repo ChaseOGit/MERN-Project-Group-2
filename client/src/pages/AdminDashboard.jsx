@@ -45,7 +45,7 @@ export default function AdminDashboard() {
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // 3RD-PARTY API AUTO-FILL
+  //  3RD-PARTY API AUTO-FILL
   const handleAutoFill = async () => {
     if (!formData.name) return alert("Please type a product name first.");
     setIsSearching(true);
@@ -78,11 +78,11 @@ export default function AdminDashboard() {
       description: item.description,
       image: item.image
     });
-    setActiveTab('add'); // Switch back to add tab
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top
+    setActiveTab('add'); 
+    window.scrollTo({ top: 0, behavior: 'smooth' }); 
   };
 
-  // BULK ADD DEVICES
+  //  BULK ADD DEVICES
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -103,7 +103,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // DELETE DEVICE
+  //  DELETE DEVICE
   const handleDelete = async (id, name) => {
     if (window.confirm(`Are you sure you want to permanently delete this ${name}?`)) {
       try {
@@ -115,7 +115,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // UPDATE EXISTING DEVICE
+  //  UPDATE EXISTING DEVICE
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -171,13 +171,43 @@ export default function AdminDashboard() {
                 <textarea name="serialNumber" required value={formData.serialNumber} onChange={handleChange} placeholder="e.g. SN-001, SN-002, SN-003" rows="2" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} />
               </div>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 140px' }}><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Category</label><select name="category" value={formData.category} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}><option value="Laptops">Laptops</option><option value="Cameras">Cameras</option><option value="Accessories">Accessories</option></select></div>
-                <div style={{ flex: '1 1 140px' }}><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Location</label><select name="location" value={formData.location} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}><option value="John C. Hitt Library">John C. Hitt Library</option><option value="Downtown Campus">Downtown Campus</option><option value="Rosen College">Rosen College</option></select></div>
+                <div style={{ flex: '1 1 140px' }}>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Category</label>
+                  <select name="category" value={formData.category} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
+                    <option value="Laptops">Laptops</option>
+                    <option value="Tablets">Tablets</option>
+                    <option value="Cameras">Cameras</option>
+                    <option value="Audio & Video">Audio & Video</option>
+                    <option value="Calculators">Calculators</option>
+                    <option value="Accessories">Accessories</option>
+                  </select>
+                </div>
+                <div style={{ flex: '1 1 140px' }}>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Location</label>
+                  <select name="location" value={formData.location} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
+                    <option value="John C. Hitt Library">John C. Hitt Library</option>
+                    <option value="Downtown Campus">Downtown Campus</option>
+                    <option value="Rosen College">Rosen College</option>
+                  </select>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 100px' }}><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Loan Period</label><select name="loanPeriod" value={formData.loanPeriod} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}><option value="4 Hours">4 Hours</option><option value="3 Days">3 Days</option><option value="7 Days">7 Days</option></select></div>
-                <div style={{ flex: '1 1 100px' }}><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Restriction</label><select name="restrictedTo" value={formData.restrictedTo} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}><option value="All">All</option><option value="Student">Student</option><option value="Faculty">Faculty</option><option value="Admin">Admin</option></select></div>
-                <div style={{ flex: '1 1 100px' }}><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Fee ($/day)</label><input type="number" name="overdueFeeRate" required value={formData.overdueFeeRate} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} /></div>
+                <div style={{ flex: '1 1 100px' }}>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Loan Period</label>
+                  <select name="loanPeriod" value={formData.loanPeriod} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
+                    <option value="4 Hours">4 Hours</option><option value="3 Days">3 Days</option><option value="7 Days">7 Days</option>
+                  </select>
+                </div>
+                <div style={{ flex: '1 1 100px' }}>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Restriction</label>
+                  <select name="restrictedTo" value={formData.restrictedTo} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
+                    <option value="All">All</option><option value="Student">Student</option><option value="Faculty">Faculty</option><option value="Admin">Admin</option>
+                  </select>
+                </div>
+                <div style={{ flex: '1 1 100px' }}>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Fee ($/day)</label>
+                  <input type="number" name="overdueFeeRate" required value={formData.overdueFeeRate} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} />
+                </div>
               </div>
               <div><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Description</label><textarea name="description" required value={formData.description} onChange={handleChange} rows="3" style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} /></div>
               <div><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Image URL</label><input type="url" name="image" required value={formData.image} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} /></div>
@@ -220,7 +250,6 @@ export default function AdminDashboard() {
                     </span>
                   </td>
                   
-                  {/* 🚀 NEW: Added the "Add Stock" Button */}
                   <td style={{ padding: '1rem', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                     <button onClick={() => handleAddMoreStock(item)} title="Add More of this Item" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--success-color)', background: 'var(--success-bg)', color: 'var(--success-color)', cursor: 'pointer' }}>
                       <PackagePlus size={16} />
@@ -259,7 +288,12 @@ export default function AdminDashboard() {
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Category</label>
                   <select value={editingDevice.category || ''} onChange={(e) => setEditingDevice({...editingDevice, category: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="Laptops">Laptops</option><option value="Cameras">Cameras</option><option value="Accessories">Accessories</option>
+                    <option value="Laptops">Laptops</option>
+                    <option value="Tablets">Tablets</option>
+                    <option value="Cameras">Cameras</option>
+                    <option value="Audio & Video">Audio & Video</option>
+                    <option value="Calculators">Calculators</option>
+                    <option value="Accessories">Accessories</option>
                   </select>
                 </div>
               </div>
@@ -268,13 +302,17 @@ export default function AdminDashboard() {
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Location</label>
                   <select value={editingDevice.location || ''} onChange={(e) => setEditingDevice({...editingDevice, location: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="John C. Hitt Library">John C. Hitt Library</option><option value="Downtown Campus">Downtown Campus</option><option value="Rosen College">Rosen College</option>
+                    <option value="John C. Hitt Library">John C. Hitt Library</option>
+                    <option value="Downtown Campus">Downtown Campus</option>
+                    <option value="Rosen College">Rosen College</option>
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Restriction</label>
                   <select value={editingDevice.restrictedTo || ''} onChange={(e) => setEditingDevice({...editingDevice, restrictedTo: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="All">All</option><option value="Student">Student</option><option value="Faculty">Faculty</option>
+                    <option value="All">All</option>
+                    <option value="Student">Student</option>
+                    <option value="Faculty">Faculty</option>
                   </select>
                 </div>
               </div>

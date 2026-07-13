@@ -1,17 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   CheckCircle2, XCircle, MapPin, Clock, Search, ShieldAlert, 
-  RefreshCw, X, Laptop, Camera, Cable, Layers, Info
+  RefreshCw, X, Laptop, Camera, Cable, Layers, Tablet, Headphones, Calculator, SlidersHorizontal, Info
 } from 'lucide-react';
 import api from '../services/api';
 
 export default function Home() {
   const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Basic Filters
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("All Locations");
-  const [isLoading, setIsLoading] = useState(true);
   
+  // Advanced Filters (Hidden by default for a clean UI)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [selectedLoanPeriod, setSelectedLoanPeriod] = useState("All");
+  const [selectedEligibility, setSelectedEligibility] = useState("All");
+
+  // Modal State
   const [selectedItem, setSelectedItem] = useState(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -32,9 +40,13 @@ export default function Home() {
 
   useEffect(() => { fetchInventory(); }, []);
 
+  // Sleek Category Icons
   const getCategoryIcon = (category) => {
     if (category === "Laptops") return <Laptop size={18} />;
+    if (category === "Tablets") return <Tablet size={18} />;
     if (category === "Cameras") return <Camera size={18} />;
+    if (category === "Audio & Video") return <Headphones size={18} />;
+    if (category === "Calculators") return <Calculator size={18} />;
     if (category === "Accessories") return <Cable size={18} />;
     return <Layers size={18} />;
   };
@@ -46,7 +58,7 @@ export default function Home() {
         name: device.name, 
         category: device.category, 
         image: device.image,
-        description: device.description || "No description available.", // Pulling the 3rd Party API Description!
+        description: device.description || "No description available.",
         loanPeriod: device.loanPeriod, 
         restrictedTo: device.restrictedTo || "All",
         totalOverall: 0, 
@@ -69,45 +81,51 @@ export default function Home() {
     return acc;
   }, {});
 
-  const displayItems = Object.values(groupedItems).filter(item => {
+  const displayItems = Object.values(groupedItems);
+
+  // DYNAMIC FILTER GENERATION (Scans database to create dropdown options)
+  const availableLoanPeriods = useMemo(() => {
+    return [...new Set(displayItems.map(item => item.loanPeriod))].sort();
+  }, [displayItems]);
+
+  const availableRoles = useMemo(() => {
+    return [...new Set(displayItems.map(item => item.restrictedTo))].sort();
+  }, [displayItems]);
+
+  // FILTERING LOGIC (Applies Basic + Advanced Filters)
+  const filteredItems = displayItems.filter(item => {
     const matchesCategory = activeCategory === "All" || item.category === activeCategory;
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLocation = selectedLocation === "All Locations" || item.locations[selectedLocation];
-    return matchesCategory && matchesSearch && matchesLocation;
+    const matchesLoanPeriod = selectedLoanPeriod === "All" || item.loanPeriod === selectedLoanPeriod;
+    const matchesEligibility = selectedEligibility === "All" || item.restrictedTo === selectedEligibility;
+    
+    return matchesCategory && matchesSearch && matchesLocation && matchesLoanPeriod && matchesEligibility;
   });
 
+  // Check Out Logic
   const handleConfirmReserve = async () => {
     const storedUser = JSON.parse(localStorage.getItem('user'));
-    
-    if (!storedUser) {
-      alert("Please log in to reserve a device!");
-      setSelectedItem(null);
-      return;
-    }
+    if (!storedUser) return alert("Please log in to reserve a device!");
 
     if (selectedItem.restrictedTo !== 'All') {
       const userRole = storedUser.role.toLowerCase();
       const itemRole = selectedItem.restrictedTo.toLowerCase();
       if (userRole !== itemRole && userRole !== 'admin') {
-        alert(`Access Denied: This item is restricted to ${selectedItem.restrictedTo}s only.`);
-        return;
+        return alert(`Access Denied: This item is restricted to ${selectedItem.restrictedTo}s only.`);
       }
     }
 
     try {
       setIsProcessing(true);
-      let deviceIdToCheckout;
-      if (selectedLocation === "All Locations") {
-        const availableLoc = Object.values(selectedItem.locations).find(l => l.availableCount > 0);
-        deviceIdToCheckout = availableLoc.availableIds[0];
-      } else {
-        deviceIdToCheckout = selectedItem.locations[selectedLocation].availableIds[0];
-      }
+      let deviceIdToCheckout = selectedLocation === "All Locations" 
+        ? Object.values(selectedItem.locations).find(l => l.availableCount > 0).availableIds[0]
+        : selectedItem.locations[selectedLocation].availableIds[0];
 
       const response = await api.post('/rentals/checkout', { deviceId: deviceIdToCheckout, userId: storedUser._id });
       alert(response.data.message);
       fetchInventory(); 
-      setSelectedItem(null); // Close modal on success
+      setSelectedItem(null); 
     } catch (error) {
       alert(error.response?.data?.message || "Failed to reserve device");
     } finally {
@@ -116,16 +134,10 @@ export default function Home() {
     }
   };
 
-  // Helper to open modal and reset checkbox
-  const openDeviceDetails = (item) => {
-    setSelectedItem(item);
-    setAcceptedTerms(false);
-  };
-
   return (
     <main className="main-layout">
-      {/* --- SEARCH & LOCATION CONTROLS --- */}
-      <section className="controls-bar">
+      {/* --- TOP CONTROLS BAR --- */}
+      <section className="controls-bar" style={{ marginBottom: showAdvancedFilters ? '1rem' : '1.5rem' }}>
         <div className="search-wrapper">
           <Search size={20} className="search-icon" />
           <input 
@@ -145,16 +157,61 @@ export default function Home() {
             <option value="Downtown Campus">🏢 Downtown Campus</option>
             <option value="Rosen College">🏨 Rosen College</option>
           </select>
-          <button onClick={fetchInventory} className="refresh-btn">
+          
+          {/* ADVANCED FILTERS TOGGLE */}
+          <button 
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)} 
+            className="refresh-btn"
+            style={{ backgroundColor: showAdvancedFilters ? 'var(--ucf-black)' : 'var(--bg-surface)', color: showAdvancedFilters ? 'var(--ucf-gold)' : 'var(--text-main)' }}
+            title="Advanced Filters"
+          >
+            <SlidersHorizontal size={20} />
+          </button>
+          
+          <button onClick={fetchInventory} className="refresh-btn" title="Refresh Data">
             <RefreshCw size={20} className={isLoading ? "spin-animation" : ""} />
           </button>
         </div>
       </section>
 
-      {/* --- CATEGORY PILLS --- */}
+      {/* --- ADVANCED FILTERS TRAY (Smooth Dropdown) --- */}
+      {showAdvancedFilters && (
+        <section style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', padding: '1rem', backgroundColor: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+          
+          <div style={{ flex: '1 1 200px' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'block' }}>Loan Period</label>
+            <select value={selectedLoanPeriod} onChange={(e) => setSelectedLoanPeriod(e.target.value)} className="location-select" style={{ width: '100%' }}>
+              <option value="All">All Loan Periods</option>
+              {availableLoanPeriods.map(period => (
+                <option key={period} value={period}>{period}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ flex: '1 1 200px' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'block' }}>Eligible User</label>
+            <select value={selectedEligibility} onChange={(e) => setSelectedEligibility(e.target.value)} className="location-select" style={{ width: '100%' }}>
+              <option value="All">All Users</option>
+              {availableRoles.map(role => (
+                <option key={role} value={role}>{role === 'All' ? 'Open to Everyone' : `${role}s Only`}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+             <button onClick={() => { setSelectedLoanPeriod("All"); setSelectedEligibility("All"); }} style={{ padding: '0.85rem 1rem', background: 'transparent', border: 'none', color: 'var(--error-color)', cursor: 'pointer', fontWeight: 600 }}>
+               Clear Filters
+             </button>
+          </div>
+
+        </section>
+      )}
+
+      {/* --- UNIFIED CATEGORY PILLS --- */}
       <section>
-        <div className="category-group">
-          {["All", "Laptops", "Cameras", "Accessories"].map(cat => (
+        <div className="category-group" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+          {/* Reduced from 12 messy categories to 7 clean logical ones */}
+          {["All", "Laptops", "Tablets", "Cameras", "Audio & Video", "Calculators", "Accessories"].map(cat => (
             <button key={cat} className={`filter-btn ${activeCategory === cat ? "active" : ""}`} onClick={() => setActiveCategory(cat)}>
               {getCategoryIcon(cat)} {cat}
             </button>
@@ -162,27 +219,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- INVENTORY GRID (De-cluttered!) --- */}
+      {/* --- INVENTORY GRID --- */}
       {isLoading ? (
         <div style={{ textAlign: "center", padding: "4rem", color: "var(--text-muted)" }}><h2>Fetching Inventory...</h2></div>
       ) : (
         <section className="inventory-grid">
-          {displayItems.length === 0 ? (
-            <p style={{ color: "var(--text-muted)", gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', fontSize: '1.2rem' }}>No devices match your search.</p>
+          {filteredItems.length === 0 ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '4rem', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
+              <Search size={48} color="var(--border-color)" style={{ marginBottom: '1rem' }} />
+              <h3 style={{ margin: '0 0 0.5rem 0' }}>No devices match your exact filters.</h3>
+              <p style={{ color: "var(--text-muted)", margin: 0 }}>Try clearing some filters or selecting a different location.</p>
+            </div>
           ) : (
-            displayItems.map(item => {
+            filteredItems.map(item => {
               const primaryAvailableCount = selectedLocation === "All Locations" ? item.availableOverall : (item.locations[selectedLocation]?.availableCount || 0);
               const primaryTotalCount = selectedLocation === "All Locations" ? item.totalOverall : (item.locations[selectedLocation]?.totalCount || 0);
-              
               const otherAvailableLocations = Object.entries(item.locations).filter(([loc, stock]) => loc !== selectedLocation && stock.availableCount > 0);
 
               return (
                 <article 
-                  className="tech-card" 
-                  key={item.name} 
-                  onClick={() => openDeviceDetails(item)}
-                  style={{ cursor: 'pointer' }}
-                  title="Click to view details"
+                  className="tech-card" key={item.name} 
+                  onClick={() => { setSelectedItem(item); setAcceptedTerms(false); }}
+                  style={{ cursor: 'pointer' }} title="Click to view details"
                 >
                   <div className="card-image-wrapper">
                     <img src={item.image} alt={item.name} className="card-image" />
@@ -220,7 +278,6 @@ export default function Home() {
         <div className="modal-backdrop" onClick={() => setSelectedItem(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '0', overflow: 'hidden' }}>
             
-            {/* Modal Header & Image */}
             <div style={{ position: 'relative', backgroundColor: '#FFFFFF', borderBottom: '1px solid var(--border-color)', height: '250px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <button onClick={() => setSelectedItem(null)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}>
                 <X size={20} />
@@ -228,12 +285,9 @@ export default function Home() {
               <img src={selectedItem.image} alt={selectedItem.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', padding: '1rem' }} />
             </div>
 
-            {/* Modal Body */}
             <div style={{ padding: '2rem' }}>
               <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: 800 }}>{selectedItem.name}</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
-                {selectedItem.description}
-              </p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>{selectedItem.description}</p>
               
               <div className="modal-info-box" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: 0 }}>
                 <div>
@@ -259,7 +313,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Checkout Actions */}
               {((selectedLocation === "All Locations" ? selectedItem.availableOverall : (selectedItem.locations[selectedLocation]?.availableCount || 0)) > 0) ? (
                 <>
                   <label className="modal-checkbox-label">
