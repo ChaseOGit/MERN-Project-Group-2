@@ -24,6 +24,13 @@ export default function Navbar({ theme, toggleTheme }) {
           
           {currentUser ? (
             <>
+              {/* Show Admin Portal button only if role is Admin */}
+              {currentUser.role === 'Admin' && (
+                <Link to="/admin" className="btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center', textDecoration: 'none', backgroundColor: '#EF4444', color: '#FFF' }}>
+                  Admin
+                </Link>
+              )}
+
               <Link to="/dashboard" className="btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center', textDecoration: 'none' }}>
                 <User size={18} /> Dashboard
               </Link>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   CheckCircle2, XCircle, MapPin, Clock, Search, ShieldAlert, 
-  RefreshCw, X, Bell, Laptop, Camera, Cable, Layers 
+  RefreshCw, X, Laptop, Camera, Cable, Layers, Info
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -39,12 +39,19 @@ export default function Home() {
     return <Layers size={18} />;
   };
 
+  // GROUPING LOGIC
   const groupedItems = items.reduce((acc, device) => {
     if (!acc[device.name]) {
       acc[device.name] = {
-        name: device.name, category: device.category, image: device.image,
-        loanPeriod: device.loanPeriod, restrictedTo: device.restrictedTo || "All",
-        totalOverall: 0, availableOverall: 0, locations: {},
+        name: device.name, 
+        category: device.category, 
+        image: device.image,
+        description: device.description || "No description available.", // Pulling the 3rd Party API Description!
+        loanPeriod: device.loanPeriod, 
+        restrictedTo: device.restrictedTo || "All",
+        totalOverall: 0, 
+        availableOverall: 0, 
+        locations: {},
       };
     }
     const loc = device.location || "Unknown Location";
@@ -83,7 +90,6 @@ export default function Home() {
       const itemRole = selectedItem.restrictedTo.toLowerCase();
       if (userRole !== itemRole && userRole !== 'admin') {
         alert(`Access Denied: This item is restricted to ${selectedItem.restrictedTo}s only.`);
-        setSelectedItem(null);
         return;
       }
     }
@@ -101,13 +107,19 @@ export default function Home() {
       const response = await api.post('/rentals/checkout', { deviceId: deviceIdToCheckout, userId: storedUser._id });
       alert(response.data.message);
       fetchInventory(); 
+      setSelectedItem(null); // Close modal on success
     } catch (error) {
       alert(error.response?.data?.message || "Failed to reserve device");
     } finally {
       setIsProcessing(false);
-      setSelectedItem(null);
       setAcceptedTerms(false);
     }
+  };
+
+  // Helper to open modal and reset checkbox
+  const openDeviceDetails = (item) => {
+    setSelectedItem(item);
+    setAcceptedTerms(false);
   };
 
   return (
@@ -150,7 +162,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- INVENTORY GRID --- */}
+      {/* --- INVENTORY GRID (De-cluttered!) --- */}
       {isLoading ? (
         <div style={{ textAlign: "center", padding: "4rem", color: "var(--text-muted)" }}><h2>Fetching Inventory...</h2></div>
       ) : (
@@ -162,50 +174,37 @@ export default function Home() {
               const primaryAvailableCount = selectedLocation === "All Locations" ? item.availableOverall : (item.locations[selectedLocation]?.availableCount || 0);
               const primaryTotalCount = selectedLocation === "All Locations" ? item.totalOverall : (item.locations[selectedLocation]?.totalCount || 0);
               
-              const otherAvailableLocations = Object.entries(item.locations)
-                .filter(([loc, stock]) => loc !== selectedLocation && stock.availableCount > 0)
-                .map(([loc]) => loc);
+              const otherAvailableLocations = Object.entries(item.locations).filter(([loc, stock]) => loc !== selectedLocation && stock.availableCount > 0);
 
               return (
-                <article className="tech-card" key={item.name}>
+                <article 
+                  className="tech-card" 
+                  key={item.name} 
+                  onClick={() => openDeviceDetails(item)}
+                  style={{ cursor: 'pointer' }}
+                  title="Click to view details"
+                >
                   <div className="card-image-wrapper">
                     <img src={item.image} alt={item.name} className="card-image" />
                     <span className="category-badge">{item.category}</span>
                   </div>
 
-                  <div className="card-content">
-                    <h3 className="card-title">{item.name}</h3>
+                  <div className="card-content" style={{ paddingBottom: '1rem' }}>
+                    <h3 className="card-title" style={{ marginBottom: '0.5rem' }}>{item.name}</h3>
 
                     {(item.restrictedTo && item.restrictedTo !== "All") && (
                       <div className="restriction-badge">
-                        <ShieldAlert size={14} /> Restricted: {item.restrictedTo} Only
+                        <ShieldAlert size={14} /> {item.restrictedTo} Only
                       </div>
                     )}
 
-                    <div className="card-meta" style={{ marginTop: item.restrictedTo === "All" ? '0' : 'auto' }}>
-                      <div className="meta-item"><MapPin size={16} className="meta-icon" /><span>{selectedLocation === "All Locations" ? "Multiple Locations" : selectedLocation}</span></div>
-                      <div className="meta-item"><Clock size={16} className="meta-icon" /><span>Loan Period: {item.loanPeriod}</span></div>
-                    </div>
-                    
-                    <div className="card-divider"></div>
-
-                    <div className="card-actions">
+                    <div style={{ marginTop: 'auto' }}>
                       {primaryAvailableCount > 0 ? (
-                        <div className="status-indicator success"><CheckCircle2 size={18} /><span>{primaryAvailableCount} of {primaryTotalCount} Available</span></div>
+                        <div className="status-indicator success"><CheckCircle2 size={16} /><span>{primaryAvailableCount} of {primaryTotalCount} Available</span></div>
                       ) : otherAvailableLocations.length > 0 ? (
-                        <div className="status-indicator warning"><MapPin size={18} /><span>Available at {otherAvailableLocations[0]}</span></div>
+                        <div className="status-indicator warning"><MapPin size={16} /><span>Available Elsewhere</span></div>
                       ) : (
-                        <div className="status-indicator error"><XCircle size={18} /><span>Out of Stock</span></div>
-                      )}
-
-                      {primaryAvailableCount > 0 ? (
-                        <button className="btn-reserve" onClick={() => { setSelectedItem(item); setAcceptedTerms(false); }}>
-                          Reserve Device
-                        </button>
-                      ) : (
-                        <button className="btn-reserve" disabled>
-                          <Bell size={16} style={{ marginRight: '6px' }} /> Remind Me
-                        </button>
+                        <div className="status-indicator error"><XCircle size={16} /><span>Out of Stock</span></div>
                       )}
                     </div>
                   </div>
@@ -216,29 +215,66 @@ export default function Home() {
         </section>
       )}
 
-      {/* --- CONFIRMATION MODAL --- */}
+      {/* --- QUICK VIEW / CHECKOUT MODAL --- */}
       {selectedItem && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h2 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.5rem', fontWeight: 800 }}>Confirm Reservation</h2>
-            <p style={{ color: 'var(--text-muted)' }}>You are requesting to reserve <strong>{selectedItem.name}</strong>.</p>
+        <div className="modal-backdrop" onClick={() => setSelectedItem(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '0', overflow: 'hidden' }}>
             
-            <div className="modal-info-box">
-              <p style={{ margin: '0 0 0.5rem 0' }}><strong>📍 Pickup Location:</strong> {selectedLocation === "All Locations" ? Object.keys(selectedItem.locations).find(l => selectedItem.locations[l].availableCount > 0) : selectedLocation}</p>
-              <p style={{ margin: '0 0 0.5rem 0' }}><strong>⏱️ Loan Period:</strong> {selectedItem.loanPeriod}</p>
-              <p style={{ margin: 0 }}><strong>🔒 Restriction:</strong> {selectedItem.restrictedTo}</p>
+            {/* Modal Header & Image */}
+            <div style={{ position: 'relative', backgroundColor: '#FFFFFF', borderBottom: '1px solid var(--border-color)', height: '250px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <button onClick={() => setSelectedItem(null)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}>
+                <X size={20} />
+              </button>
+              <img src={selectedItem.image} alt={selectedItem.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', padding: '1rem' }} />
             </div>
 
-            <label className="modal-checkbox-label">
-              <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
-              <span>I agree to return this item on time to the specified location and accept financial responsibility for any damages.</span>
-            </label>
+            {/* Modal Body */}
+            <div style={{ padding: '2rem' }}>
+              <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: 800 }}>{selectedItem.name}</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
+                {selectedItem.description}
+              </p>
+              
+              <div className="modal-info-box" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: 0 }}>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Pickup Location</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}><MapPin size={16} className="meta-icon"/> {selectedLocation === "All Locations" ? Object.keys(selectedItem.locations).find(l => selectedItem.locations[l].availableCount > 0) || "Check Locations" : selectedLocation}</div>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Loan Period</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}><Clock size={16} className="meta-icon"/> {selectedItem.loanPeriod}</div>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Restriction</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}><ShieldAlert size={16} className="meta-icon"/> {selectedItem.restrictedTo}</div>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Status</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                    <Info size={16} className="meta-icon"/> 
+                    {selectedLocation === "All Locations" 
+                      ? `${selectedItem.availableOverall} Available Total` 
+                      : `${selectedItem.locations[selectedLocation]?.availableCount || 0} Available Here`}
+                  </div>
+                </div>
+              </div>
 
-            <div className="modal-actions">
-              <button onClick={() => setSelectedItem(null)} className="btn-cancel">Cancel</button>
-              <button onClick={handleConfirmReserve} disabled={!acceptedTerms || isProcessing} className="btn-primary">
-                {isProcessing ? "Processing..." : "Confirm Reservation"}
-              </button>
+              {/* Checkout Actions */}
+              {((selectedLocation === "All Locations" ? selectedItem.availableOverall : (selectedItem.locations[selectedLocation]?.availableCount || 0)) > 0) ? (
+                <>
+                  <label className="modal-checkbox-label">
+                    <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
+                    <span>I agree to return this item on time to the specified location and accept financial responsibility for any damages.</span>
+                  </label>
+                  <button onClick={handleConfirmReserve} disabled={!acceptedTerms || isProcessing} className="btn-primary" style={{ width: '100%', padding: '1rem' }}>
+                    {isProcessing ? "Processing Reservation..." : "Confirm Reservation"}
+                  </button>
+                </>
+              ) : (
+                <div style={{ padding: '1rem', background: 'var(--error-bg)', color: 'var(--error-color)', borderRadius: '8px', textAlign: 'center', fontWeight: 600 }}>
+                  Item is currently out of stock at this location.
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 
 const devicesSchema = new mongoose.Schema({ 
-  name: { type: String, required: true }, 
+  name: { type: String, required: true },
+  description: { type: String, default: "No description provided." }, 
   category: { type: String, required: true }, 
   serialNumber: { type: String, unique: true, required: true }, 
   
