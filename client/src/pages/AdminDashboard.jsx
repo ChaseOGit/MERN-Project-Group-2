@@ -32,16 +32,31 @@ export default function AdminDashboard() {
     }
   }, []);
 
+// 1. Define the fetch function FIRST (and add safety fallbacks)
   const fetchInventory = async () => {
     try {
       const res = await api.get('/devices');
-      setInventory(res.data.data);
+      // Use optional chaining just in case the API responds differently
+      const fetchedData = res.data?.data || []; 
+      setInventory(fetchedData);
       setIsLoading(false);
     } catch (err) {
       console.error("Failed to fetch inventory", err);
       setIsLoading(false);
     }
   };
+
+  // 2. SECURITY CHECK & INITIAL FETCH
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    if (!storedUser || storedUser.role !== 'Admin') {
+      alert("Access Denied: You must be an Admin to view this page.");
+      window.location.href = '/';
+    } else {
+      setUser(storedUser);
+      fetchInventory(); // Now it knows exactly what this function is!
+    }
+  }, []);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -138,8 +153,10 @@ export default function AdminDashboard() {
           >
             <Plus size={18} style={{ marginRight: '6px' }}/> Add Devices
           </button>
+          
+          {/* refreshes the inventory on click */}
           <button 
-            onClick={() => setActiveTab('manage')} 
+            onClick={() => { setActiveTab('manage'); fetchInventory(); }} 
             className={`btn-primary ${activeTab === 'manage' ? '' : 'btn-nav-outline'}`}
             style={{ color: activeTab === 'manage' ? '#000' : 'var(--text-main)', borderColor: activeTab === 'manage' ? 'transparent' : 'var(--border-color)', background: activeTab === 'manage' ? 'var(--ucf-gold)' : 'transparent' }}
           >
