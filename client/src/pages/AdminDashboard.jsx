@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { 
-  ShieldAlert, Wand2, Plus, Package, List, Edit, Trash2, X, PackagePlus, ScanLine 
+  ShieldAlert, Wand2, Plus, Package, List, Edit, Trash2, X, PackagePlus, ScanLine, Camera, UploadCloud 
 } from 'lucide-react';
 import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
 import api from '../services/api';
@@ -20,6 +20,12 @@ export default function AdminDashboard() {
   });
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // BARCODE SCANNER STATE
+  const [showScannerModal, setShowScannerModal] = useState(false);
+  const [scannerMode, setScannerMode] = useState('choice'); // 'choice' or 'camera'
+  const videoRef = useRef(null);
+  const codeReaderRef = useRef(null);
 
   // 1. Fetch Inventory Data
   const fetchInventory = async () => {
@@ -46,87 +52,62 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  // Cleanup Camera on unmount just to be safe
+  useEffect(() => {
+    return () => {
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+      }
+    };
+  }, []);
+
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // CASCADING 3RD-PARTY API (DummyJSON -> Wikipedia OpenSearch -> Wikipedia Summary)
+  //  CASCADING 3RD-PARTY API (Text Search)
   const handleAutoFill = async () => {
-    if (!formData.name) return alert("Please type a product name first (e.g. 'Macbook', 'Calculator').");
+    if (!formData.name) return alert("Please type a product name first (e.g. 'Macbook').");
     
     setIsSearching(true);
     try {
-      // API 1: DummyJSON (Great for standard Laptops, Phones, Cameras)
       const dummyResponse = await axios.get(`https://dummyjson.com/products/search?q=${formData.name}`);
-      const products = dummyResponse.data.products;
-
-      if (products.length > 0) {
-        const product = products[0];
-        setFormData(prev => ({
-          ...prev,
-          name: product.title,
-          description: product.description,
-          image: product.thumbnail
-        }));
-        alert(`Success: Found specs for '${product.title}' from Product API!`);
+      if (dummyResponse.data.products.length > 0) {
+        const product = dummyResponse.data.products[0];
+        setFormData(prev => ({ ...prev, name: product.title, description: product.description, image: product.thumbnail }));
+        alert(`Success: Found specs for '${product.title}' from Product API`);
         setIsSearching(false);
         return;
       }
 
-      console.log("Item not in Product API. Falling back to Wikipedia Search...");
-      
-      // API 2: Wikipedia "Fuzzy Search"
       const searchResponse = await axios.get(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(formData.name)}&utf8=&format=json&origin=*`);
       const searchResults = searchResponse.data.query.search;
       
       if (searchResults.length > 0) {
-        const bestMatchTitle = searchResults[0].title;
-        
-        // API 3: Wikipedia Summary
-        const wikiResponse = await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestMatchTitle)}`);
-        
+        const wikiResponse = await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchResults[0].title)}`);
         if (wikiResponse.data && wikiResponse.data.extract) {
-          setFormData(prev => ({
-            ...prev,
-            name: wikiResponse.data.title, 
-            description: wikiResponse.data.extract, 
-            image: wikiResponse.data.thumbnail?.source || 'https://via.placeholder.com/300x200?text=No+Image+Found'
-          }));
-          alert(`Success: Found specs for '${wikiResponse.data.title}' from Encyclopedia API!`);
+          setFormData(prev => ({ ...prev, name: wikiResponse.data.title, description: wikiResponse.data.extract, image: wikiResponse.data.thumbnail?.source || 'https://via.placeholder.com/300x200?text=No+Image+Found' }));
+          alert(`Success: Found specs for '${wikiResponse.data.title}' from Encyclopedia API`);
           return;
         }
       }
-
       alert("Could not find this specific item in our external databases. Please enter the details manually.");
     } catch (error) {
-      console.error("API Error:", error);
       alert("Failed to connect to external APIs.");
     } finally {
       setIsSearching(false);
     }
   };
 
-// BARCODE SCANNER
-  const handleBarcodeUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+  // ==========================================
+  // BARCODE SCANNER LOGIC (Webcam & File)
+  // ==========================================
+  
+  const processBarcodeString = async (barcodeString) => {
+    console.log("Found Barcode:", barcodeString);
     setIsSearching(true);
+    closeScannerModal(); // Close modal and shut off camera immediately
+    
     try {
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-        BarcodeFormat.UPC_A, BarcodeFormat.UPC_E, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.CODE_128
-      ]);
-      hints.set(DecodeHintType.TRY_HARDER, true);
-
-      const codeReader = new BrowserMultiFormatReader(hints);
-      const imageUrl = URL.createObjectURL(file);
-      const result = await codeReader.decodeFromImageUrl(imageUrl);
-      const barcodeString = result.getText();
-
-      console.log("Found Barcode:", barcodeString);
-
-      // Send the barcode to backend
       const response = await api.get(`/devices/barcode/${barcodeString}`);
-
       if (response.data.items && response.data.items.length > 0) {
         const product = response.data.items[0];
         setFormData(prev => ({
@@ -137,23 +118,77 @@ export default function AdminDashboard() {
         }));
         alert(`Success: Scanned barcode '${barcodeString}' and found: ${product.title}!`);
       } else {
-        // Triggers for non-electronics
         setFormData(prev => ({ ...prev, serialNumber: barcodeString }));
         alert(`Barcode '${barcodeString}' was successfully scanned However, it isn't in the free UPC database. We put the barcode into the Serial Number field for you.`);
       }
     } catch (error) {
-      console.error("Barcode error:", error);
-      alert("Could not extract a barcode from that image. Ensure the barcode is flat and takes up most of the picture.");
+      console.error("Barcode proxy error:", error);
+      alert("Failed to connect to UPC database.");
     } finally {
       setIsSearching(false);
-      e.target.value = null; 
     }
   };
 
-  // ADD MORE STOCK BUTTON LOGIC
+  const startWebcamScan = () => {
+    setScannerMode('camera');
+    
+    // Slight delay to allow React to render the <video> element before attaching the stream
+    setTimeout(() => {
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.UPC_A, BarcodeFormat.UPC_E, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.CODE_128]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+
+      const codeReader = new BrowserMultiFormatReader(hints);
+      codeReaderRef.current = codeReader;
+
+      codeReader.decodeFromVideoDevice(null, videoRef.current, (result, err) => {
+        if (result) {
+          processBarcodeString(result.getText());
+        }
+      }).catch(err => {
+        console.error("Camera error", err);
+        alert("Camera access denied or unavailable. Please check your browser permissions.");
+        setScannerMode('choice');
+      });
+    }, 100);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.UPC_A, BarcodeFormat.UPC_E, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.CODE_128]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+
+      const codeReader = new BrowserMultiFormatReader(hints);
+      const imageUrl = URL.createObjectURL(file);
+      const result = await codeReader.decodeFromImageUrl(imageUrl);
+      processBarcodeString(result.getText());
+    } catch (error) {
+      alert("Could not extract a barcode from that image. Ensure the barcode is flat and clear.");
+    } finally {
+      e.target.value = null; // reset input
+    }
+  };
+
+  const closeScannerModal = () => {
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset(); // Shuts off the webcam
+      codeReaderRef.current = null;
+    }
+    setShowScannerModal(false);
+    setScannerMode('choice');
+  };
+
+  // ==========================================
+  // INVENTORY MANAGEMENT LOGIC
+  // ==========================================
+
   const handleAddMoreStock = (item) => {
     setFormData({
-      name: item.name, category: item.category, serialNumber: '', // Leave blank for admin
+      name: item.name, category: item.category, serialNumber: '',
       location: item.location, loanPeriod: item.loanPeriod, restrictedTo: item.restrictedTo,
       overdueFeeRate: item.overdueFeeRate, description: item.description, image: item.image
     });
@@ -161,7 +196,6 @@ export default function AdminDashboard() {
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
   };
 
-  // BULK ADD DEVICES
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -172,7 +206,7 @@ export default function AdminDashboard() {
         await api.post('/devices', { ...formData, serialNumber: sn });
         successCount++;
       }
-      alert(`Success Added ${successCount} device(s) to inventory.`);
+      alert(`Success, Added ${successCount} device(s) to inventory.`);
       setFormData({ name: '', category: 'Laptops', serialNumber: '', location: 'John C. Hitt Library', loanPeriod: '7 Days', restrictedTo: 'All', overdueFeeRate: 15, description: '', image: '' });
       fetchInventory(); 
     } catch (error) {
@@ -182,7 +216,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // DELETE DEVICE
   const handleDelete = async (id, name) => {
     if (window.confirm(`Are you sure you want to permanently delete this ${name}?`)) {
       try {
@@ -194,7 +227,6 @@ export default function AdminDashboard() {
     }
   };
 
-  //  UPDATE EXISTING DEVICE
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -236,23 +268,24 @@ export default function AdminDashboard() {
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}><Package size={24} /> Add New Devices</h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
-              {/* MAGIC API ROW: Text Search & Barcode Upload */}
+              {/* MAGIC API ROW */}
               <div>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Device Name / Model</label>
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                   <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="e.g. MacBook Pro" style={{ flexGrow: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', minWidth: '200px' }} />
                   
                   <button type="button" onClick={handleAutoFill} disabled={isSearching} className="btn-reserve" style={{ flexGrow: 0, width: 'auto', padding: '0 1rem', background: 'var(--ucf-black)', color: 'var(--ucf-gold)', border: 'none' }}>
-                    <Wand2 size={18} style={{ marginRight: '6px' }} /> {isSearching ? "Searching..." : "Auto-Fill"}
+                    <Wand2 size={18} style={{ marginRight: '6px' }} /> {isSearching ? "Searching..." : "Text Auto-Fill"}
                   </button>
                   
-                  <label className="btn-reserve" style={{ flexGrow: 0, width: 'auto', padding: '0 1rem', background: 'var(--success-color)', color: '#FFF', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                    <ScanLine size={18} style={{ marginRight: '6px' }} /> {isSearching ? "Scanning..." : "Upload Barcode"}
-                    <input type="file" accept="image/*" onChange={handleBarcodeUpload} style={{ display: 'none' }} disabled={isSearching} />
-                  </label>
+                  {/* NEW: Opens the Scanner Modal */}
+                  <button type="button" onClick={() => setShowScannerModal(true)} disabled={isSearching} className="btn-reserve" style={{ flexGrow: 0, width: 'auto', padding: '0 1rem', background: 'var(--success-color)', color: '#FFF', border: 'none' }}>
+                    <ScanLine size={18} style={{ marginRight: '6px' }} /> Scan Barcode
+                  </button>
                 </div>
               </div>
 
+              {/* REST OF FORM */}
               <div>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Serial Number(s)</label>
                 <p style={{ margin: '0.25rem 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>To add multiple items at once, separate serial numbers with a comma.</p>
@@ -262,20 +295,13 @@ export default function AdminDashboard() {
                 <div style={{ flex: '1 1 140px' }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Category</label>
                   <select name="category" value={formData.category} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="Laptops">Laptops</option>
-                    <option value="Tablets">Tablets</option>
-                    <option value="Cameras">Cameras</option>
-                    <option value="Audio & Video">Audio & Video</option>
-                    <option value="Calculators">Calculators</option>
-                    <option value="Accessories">Accessories</option>
+                    <option value="Laptops">Laptops</option><option value="Tablets">Tablets</option><option value="Cameras">Cameras</option><option value="Audio & Video">Audio & Video</option><option value="Calculators">Calculators</option><option value="Accessories">Accessories</option>
                   </select>
                 </div>
                 <div style={{ flex: '1 1 140px' }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Location</label>
                   <select name="location" value={formData.location} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="John C. Hitt Library">John C. Hitt Library</option>
-                    <option value="Downtown Campus">Downtown Campus</option>
-                    <option value="Rosen College">Rosen College</option>
+                    <option value="John C. Hitt Library">John C. Hitt Library</option><option value="Downtown Campus">Downtown Campus</option><option value="Rosen College">Rosen College</option>
                   </select>
                 </div>
               </div>
@@ -307,10 +333,48 @@ export default function AdminDashboard() {
             <div className="tech-card" style={{ padding: '2rem', background: 'var(--ucf-black)', color: 'white', borderTop: '4px solid var(--ucf-gold)' }}>
               <h3 style={{ marginTop: 0 }}>API Integration Active</h3>
               <p style={{ color: '#CCC', lineHeight: 1.6 }}><strong>Text Search:</strong> Type a keyword like "Macbook" or "TI-84" into the Device Name box and click Auto-Fill.</p>
-              <p style={{ color: '#CCC', lineHeight: 1.6 }}><strong>Barcode Scan:</strong> Click "Upload Barcode" to upload a photo of any standard UPC/EAN barcode. The system will extract the digits and query the global UPC database</p>
+              <p style={{ color: '#CCC', lineHeight: 1.6 }}><strong>Barcode Scan:</strong> Click "Scan Barcode" to use your webcam or upload a photo of any standard UPC/EAN barcode. The system will extract the digits and query the global UPC database</p>
             </div>
           </div>
         </section>
+      )}
+
+      {/* ======================= SCANNER MODAL ======================= */}
+      {showScannerModal && (
+        <div className="modal-backdrop" onClick={closeScannerModal}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0 }}>Scan Barcode</h2>
+              <button onClick={closeScannerModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)' }}><X size={24} /></button>
+            </div>
+
+            {scannerMode === 'choice' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem 0' }}>
+                <button onClick={startWebcamScan} className="btn-primary" style={{ padding: '1.5rem', fontSize: '1.1rem', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                  <Camera size={24} /> Use Live Webcam
+                </button>
+                <div style={{ position: 'relative' }}>
+                  <label className="btn-reserve" style={{ width: '100%', padding: '1.5rem', fontSize: '1.1rem', display: 'flex', gap: '12px', justifyContent: 'center', cursor: 'pointer', boxSizing: 'border-box' }}>
+                    <UploadCloud size={24} /> Upload Image File
+                    <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {scannerMode === 'camera' && (
+              <div>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Hold the barcode steady in front of the camera.</p>
+                <div style={{ width: '100%', height: '250px', backgroundColor: '#000', borderRadius: '12px', overflow: 'hidden', position: 'relative', marginBottom: '1.5rem' }}>
+                  <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }}></video>
+                  {/* Scanning Laser Animation Overlay */}
+                  <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '2px', backgroundColor: 'var(--error-color)', boxShadow: '0 0 8px var(--error-color)' }}></div>
+                </div>
+                <button onClick={closeScannerModal} className="btn-cancel" style={{ width: '100%' }}>Cancel Scanning</button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ======================= MANAGE INVENTORY TAB ======================= */}
@@ -338,7 +402,6 @@ export default function AdminDashboard() {
                       {item.isAvailable ? "In Stock" : "Checked Out"}
                     </span>
                   </td>
-                  
                   <td style={{ padding: '1rem', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                     <button onClick={() => handleAddMoreStock(item)} title="Add More of this Item" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--success-color)', background: 'var(--success-bg)', color: 'var(--success-color)', cursor: 'pointer' }}>
                       <PackagePlus size={16} />
@@ -377,12 +440,7 @@ export default function AdminDashboard() {
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Category</label>
                   <select value={editingDevice.category || ''} onChange={(e) => setEditingDevice({...editingDevice, category: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="Laptops">Laptops</option>
-                    <option value="Tablets">Tablets</option>
-                    <option value="Cameras">Cameras</option>
-                    <option value="Audio & Video">Audio & Video</option>
-                    <option value="Calculators">Calculators</option>
-                    <option value="Accessories">Accessories</option>
+                    <option value="Laptops">Laptops</option><option value="Tablets">Tablets</option><option value="Cameras">Cameras</option><option value="Audio & Video">Audio & Video</option><option value="Calculators">Calculators</option><option value="Accessories">Accessories</option>
                   </select>
                 </div>
               </div>
@@ -391,17 +449,13 @@ export default function AdminDashboard() {
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Location</label>
                   <select value={editingDevice.location || ''} onChange={(e) => setEditingDevice({...editingDevice, location: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="John C. Hitt Library">John C. Hitt Library</option>
-                    <option value="Downtown Campus">Downtown Campus</option>
-                    <option value="Rosen College">Rosen College</option>
+                    <option value="John C. Hitt Library">John C. Hitt Library</option><option value="Downtown Campus">Downtown Campus</option><option value="Rosen College">Rosen College</option>
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Restriction</label>
                   <select value={editingDevice.restrictedTo || ''} onChange={(e) => setEditingDevice({...editingDevice, restrictedTo: e.target.value})} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}>
-                    <option value="All">All</option>
-                    <option value="Student">Student</option>
-                    <option value="Faculty">Faculty</option>
+                    <option value="All">All</option><option value="Student">Student</option><option value="Faculty">Faculty</option>
                   </select>
                 </div>
               </div>
