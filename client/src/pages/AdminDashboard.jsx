@@ -3,7 +3,7 @@ import axios from 'axios';
 import { 
   ShieldAlert, Wand2, Plus, Package, List, Edit, Trash2, X, PackagePlus, ScanLine 
 } from 'lucide-react';
-import { BrowserMultiFormatReader } from '@zxing/library';
+import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
 import api from '../services/api';
 
 export default function AdminDashboard() {
@@ -111,35 +111,51 @@ export default function AdminDashboard() {
 
     setIsSearching(true);
     try {
-      // 1. Decode Barcode from the uploaded image
-      const codeReader = new BrowserMultiFormatReader();
+      // 1. Tell ZXing to "Try Harder" and specifically look for Retail Barcodes
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.CODE_128
+      ]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+
+      // 2. Decode Barcode from the uploaded image using our new hints
+      const codeReader = new BrowserMultiFormatReader(hints);
       const imageUrl = URL.createObjectURL(file);
       const result = await codeReader.decodeFromImageUrl(imageUrl);
       const barcodeString = result.getText();
 
       console.log("Found Barcode:", barcodeString);
 
-      // 2. Look up the barcode in the Global UPC Database
+      // 3. Look up the barcode in the Global UPC Database
       const response = await axios.get(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcodeString}`);
 
       if (response.data.items && response.data.items.length > 0) {
         const product = response.data.items[0];
+        
         setFormData(prev => ({
           ...prev,
           name: product.title,
           description: product.description || "No description provided.",
           image: product.images.length > 0 ? product.images[0] : ''
         }));
+        
         alert(`Success: Scanned barcode '${barcodeString}' and found: ${product.title}!`);
       } else {
-        alert(`Barcode '${barcodeString}' was successfully scanned, but the product isn't in the free UPC database.`);
+        // If the barcode is read correctly, but isn't in the database (like Kraft Mac & Cheese)
+        setFormData(prev => ({ ...prev, serialNumber: barcodeString }));
+        alert(`Barcode '${barcodeString}' was successfully scanned! However, it isn't in the free UPC database. We put the barcode into the Serial Number field for you.`);
       }
+
     } catch (error) {
       console.error("Barcode error:", error);
-      alert("Could not read a clear barcode from that image. Please try a clearer picture of the barcode.");
+      alert("Could not extract a barcode from that image. Ensure the barcode is flat and takes up most of the picture.");
     } finally {
       setIsSearching(false);
-      e.target.value = null; // Reset the input field
+      e.target.value = null; 
     }
   };
 
