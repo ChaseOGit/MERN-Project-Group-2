@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Device = require('../models/Device'); // use lowercase 'd' here
+const Device = require('../models/Device');
 
 /**
  * @swagger
@@ -24,20 +24,10 @@ const Device = require('../models/Device'); // use lowercase 'd' here
  */
 router.get('/', async (req, res) => {
     try {
-        // Create an empty filter object
         let filters = {};
+        if (req.query.location) filters.location = req.query.location;
+        if (req.query.category) filters.category = req.query.category;
 
-        // If the user appended ?location=... to the URL, add it to our MongoDB query
-        if (req.query.location) {
-            filters.location = req.query.location;
-        }
-
-        // If the user appended ?category=... to the URL, add it to our MongoDB query
-        if (req.query.category) {
-            filters.category = req.query.category;
-        }
-
-        // Pass the filters object directly into .find()
         const devices = await Device.find(filters);
         res.json({ success: true, data: devices });
     } catch (error) {
@@ -92,34 +82,33 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.get('/seed', async (req, res) => {
-    const mockDevices = [
-        { 
-            name: "Dell Latitude 5420 Laptop", category: "Laptops", serialNumber: "SN-12345", 
-            location: "John C. Hitt Library", loanPeriod: "7 Days", overdueFeeRate: 15, isAvailable: true,
-            image: "https://p11.zdassets.com/hc/theme_assets/1179782/200326467/laptop.png"
-        },
-        { 
-            name: "Dell Latitude 5420 Laptop", category: "Laptops", serialNumber: "SN-12346", 
-            location: "John C. Hitt Library", loanPeriod: "7 Days", overdueFeeRate: 15, isAvailable: false,
-            image: "https://p11.zdassets.com/hc/theme_assets/1179782/200326467/laptop.png"
-        },
-        { 
-            name: "Sony Alpha a6400 Camera", category: "Cameras", serialNumber: "SN-67890", 
-            location: "Downtown Campus", loanPeriod: "3 Days", overdueFeeRate: 25, isAvailable: false 
-        },
-        { 
-            name: "USB-C to HDMI Adapter", category: "Accessories", serialNumber: "SN-11111", 
-            location: "John C. Hitt Library", loanPeriod: "4 Hours", overdueFeeRate: 5, isAvailable: true 
-        }
-    ];
-
+/**
+ * @swagger
+ * /api/devices/barcode/{upc}:
+ *   get:
+ *     summary: Proxy route to fetch barcode data from global UPC database (Bypasses Browser CORS)
+ *     parameters:
+ *       - in: path
+ *         name: upc
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The barcode/UPC string extracted from the image
+ *     responses:
+ *       200:
+ *         description: External API data containing product details
+ */
+router.get('/barcode/:upc', async (req, res) => {
     try {
-        await Device.deleteMany({}); 
-        await Device.insertMany(mockDevices);
-        res.json({ success: true, message: "Database seeded successfully with new UCF requirements!" });
+        const upcUrl = `https://api.upcitemdb.com/prod/trial/lookup?upc=${req.params.upc}`;
+        
+        // Node 18+ has native fetch built-in Bypasses browser CORS rules.
+        const response = await fetch(upcUrl);
+        const data = await response.json();
+        
+        res.json(data);
     } catch (error) {
-        res.status(500).json({ success: false, message: "Seeding failed: " + error.message });
+        res.status(500).json({ success: false, message: "Barcode API lookup failed." });
     }
 });
 

@@ -104,25 +104,19 @@ export default function AdminDashboard() {
     }
   };
 
-  // BARCODE SCANNER API INTEGRATION
+// BARCODE SCANNER
   const handleBarcodeUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setIsSearching(true);
     try {
-      // 1. Tell ZXing to "Try Harder" and specifically look for Retail Barcodes
       const hints = new Map();
       hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-        BarcodeFormat.UPC_A,
-        BarcodeFormat.UPC_E,
-        BarcodeFormat.EAN_13,
-        BarcodeFormat.EAN_8,
-        BarcodeFormat.CODE_128
+        BarcodeFormat.UPC_A, BarcodeFormat.UPC_E, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.CODE_128
       ]);
       hints.set(DecodeHintType.TRY_HARDER, true);
 
-      // 2. Decode Barcode from the uploaded image using our new hints
       const codeReader = new BrowserMultiFormatReader(hints);
       const imageUrl = URL.createObjectURL(file);
       const result = await codeReader.decodeFromImageUrl(imageUrl);
@@ -130,26 +124,23 @@ export default function AdminDashboard() {
 
       console.log("Found Barcode:", barcodeString);
 
-      // 3. Look up the barcode in the Global UPC Database
-      const response = await axios.get(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcodeString}`);
+      // Send the barcode to backend
+      const response = await api.get(`/devices/barcode/${barcodeString}`);
 
       if (response.data.items && response.data.items.length > 0) {
         const product = response.data.items[0];
-        
         setFormData(prev => ({
           ...prev,
           name: product.title,
           description: product.description || "No description provided.",
           image: product.images.length > 0 ? product.images[0] : ''
         }));
-        
         alert(`Success: Scanned barcode '${barcodeString}' and found: ${product.title}!`);
       } else {
-        // If the barcode is read correctly, but isn't in the database (like Kraft Mac & Cheese)
+        // Triggers for non-electronics
         setFormData(prev => ({ ...prev, serialNumber: barcodeString }));
-        alert(`Barcode '${barcodeString}' was successfully scanned! However, it isn't in the free UPC database. We put the barcode into the Serial Number field for you.`);
+        alert(`Barcode '${barcodeString}' was successfully scanned However, it isn't in the free UPC database. We put the barcode into the Serial Number field for you.`);
       }
-
     } catch (error) {
       console.error("Barcode error:", error);
       alert("Could not extract a barcode from that image. Ensure the barcode is flat and takes up most of the picture.");
