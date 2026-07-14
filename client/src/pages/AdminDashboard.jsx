@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ShieldAlert, Wand2, Plus, Package, List, Edit, Trash2, X, PackagePlus } from 'lucide-react';
+import { 
+  ShieldAlert, Wand2, Plus, Package, List, Edit, Trash2, X, PackagePlus, ScanLine 
+} from 'lucide-react';
+import { BrowserMultiFormatReader } from '@zxing/library';
 import api from '../services/api';
 
 export default function AdminDashboard() {
@@ -18,7 +21,7 @@ export default function AdminDashboard() {
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 1. Define fetch first
+  // 1. Fetch Inventory Data
   const fetchInventory = async () => {
     try {
       const res = await api.get('/devices');
@@ -31,7 +34,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 2. Security Check
+  // 2. Security Check (Admin Only)
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem('user'));
     if (!storedUser || storedUser.role !== 'Admin') {
@@ -45,44 +48,113 @@ export default function AdminDashboard() {
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  //  3RD-PARTY API AUTO-FILL
+  // CASCADING 3RD-PARTY API (DummyJSON -> Wikipedia OpenSearch -> Wikipedia Summary)
   const handleAutoFill = async () => {
-    if (!formData.name) return alert("Please type a product name first.");
+    if (!formData.name) return alert("Please type a product name first (e.g. 'Macbook', 'Calculator').");
+    
     setIsSearching(true);
     try {
-      const response = await axios.get(`https://dummyjson.com/products/search?q=${formData.name}`);
-      const products = response.data.products;
+      // API 1: DummyJSON (Great for standard Laptops, Phones, Cameras)
+      const dummyResponse = await axios.get(`https://dummyjson.com/products/search?q=${formData.name}`);
+      const products = dummyResponse.data.products;
+
       if (products.length > 0) {
-        setFormData(prev => ({ ...prev, name: products[0].title, description: products[0].description, image: products[0].thumbnail }));
-        alert(`Successfully found specs for: ${products[0].title}`);
-      } else {
-        alert("No products found in external database.");
+        const product = products[0];
+        setFormData(prev => ({
+          ...prev,
+          name: product.title,
+          description: product.description,
+          image: product.thumbnail
+        }));
+        alert(`Success: Found specs for '${product.title}' from Product API!`);
+        setIsSearching(false);
+        return;
       }
+
+      console.log("Item not in Product API. Falling back to Wikipedia Search...");
+      
+      // API 2: Wikipedia "Fuzzy Search"
+      const searchResponse = await axios.get(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(formData.name)}&utf8=&format=json&origin=*`);
+      const searchResults = searchResponse.data.query.search;
+      
+      if (searchResults.length > 0) {
+        const bestMatchTitle = searchResults[0].title;
+        
+        // API 3: Wikipedia Summary
+        const wikiResponse = await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestMatchTitle)}`);
+        
+        if (wikiResponse.data && wikiResponse.data.extract) {
+          setFormData(prev => ({
+            ...prev,
+            name: wikiResponse.data.title, 
+            description: wikiResponse.data.extract, 
+            image: wikiResponse.data.thumbnail?.source || 'https://via.placeholder.com/300x200?text=No+Image+Found'
+          }));
+          alert(`Success: Found specs for '${wikiResponse.data.title}' from Encyclopedia API!`);
+          return;
+        }
+      }
+
+      alert("Could not find this specific item in our external databases. Please enter the details manually.");
     } catch (error) {
-      alert("Failed to connect to external API.");
+      console.error("API Error:", error);
+      alert("Failed to connect to external APIs.");
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  // BARCODE SCANNER API INTEGRATION
+  const handleBarcodeUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsSearching(true);
+    try {
+      // 1. Decode Barcode from the uploaded image
+      const codeReader = new BrowserMultiFormatReader();
+      const imageUrl = URL.createObjectURL(file);
+      const result = await codeReader.decodeFromImageUrl(imageUrl);
+      const barcodeString = result.getText();
+
+      console.log("Found Barcode:", barcodeString);
+
+      // 2. Look up the barcode in the Global UPC Database
+      const response = await axios.get(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcodeString}`);
+
+      if (response.data.items && response.data.items.length > 0) {
+        const product = response.data.items[0];
+        setFormData(prev => ({
+          ...prev,
+          name: product.title,
+          description: product.description || "No description provided.",
+          image: product.images.length > 0 ? product.images[0] : ''
+        }));
+        alert(`Success: Scanned barcode '${barcodeString}' and found: ${product.title}!`);
+      } else {
+        alert(`Barcode '${barcodeString}' was successfully scanned, but the product isn't in the free UPC database.`);
+      }
+    } catch (error) {
+      console.error("Barcode error:", error);
+      alert("Could not read a clear barcode from that image. Please try a clearer picture of the barcode.");
+    } finally {
+      setIsSearching(false);
+      e.target.value = null; // Reset the input field
     }
   };
 
   // ADD MORE STOCK BUTTON LOGIC
   const handleAddMoreStock = (item) => {
     setFormData({
-      name: item.name,
-      category: item.category,
-      serialNumber: '', // Leave blank so admin can type the new ones
-      location: item.location,
-      loanPeriod: item.loanPeriod,
-      restrictedTo: item.restrictedTo,
-      overdueFeeRate: item.overdueFeeRate,
-      description: item.description,
-      image: item.image
+      name: item.name, category: item.category, serialNumber: '', // Leave blank for admin
+      location: item.location, loanPeriod: item.loanPeriod, restrictedTo: item.restrictedTo,
+      overdueFeeRate: item.overdueFeeRate, description: item.description, image: item.image
     });
     setActiveTab('add'); 
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
   };
 
-  //  BULK ADD DEVICES
+  // BULK ADD DEVICES
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -93,7 +165,7 @@ export default function AdminDashboard() {
         await api.post('/devices', { ...formData, serialNumber: sn });
         successCount++;
       }
-      alert(`Success, Added ${successCount} device(s) to inventory.`);
+      alert(`Success Added ${successCount} device(s) to inventory.`);
       setFormData({ name: '', category: 'Laptops', serialNumber: '', location: 'John C. Hitt Library', loanPeriod: '7 Days', restrictedTo: 'All', overdueFeeRate: 15, description: '', image: '' });
       fetchInventory(); 
     } catch (error) {
@@ -103,7 +175,7 @@ export default function AdminDashboard() {
     }
   };
 
-  //  DELETE DEVICE
+  // DELETE DEVICE
   const handleDelete = async (id, name) => {
     if (window.confirm(`Are you sure you want to permanently delete this ${name}?`)) {
       try {
@@ -156,15 +228,24 @@ export default function AdminDashboard() {
           <div className="tech-card" style={{ padding: '2rem', height: 'fit-content' }}>
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}><Package size={24} /> Add New Devices</h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              
+              {/* MAGIC API ROW: Text Search & Barcode Upload */}
               <div>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Device Name / Model</label>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="e.g. MacBook Pro" style={{ flexGrow: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                  <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="e.g. MacBook Pro" style={{ flexGrow: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', minWidth: '200px' }} />
+                  
                   <button type="button" onClick={handleAutoFill} disabled={isSearching} className="btn-reserve" style={{ flexGrow: 0, width: 'auto', padding: '0 1rem', background: 'var(--ucf-black)', color: 'var(--ucf-gold)', border: 'none' }}>
                     <Wand2 size={18} style={{ marginRight: '6px' }} /> {isSearching ? "Searching..." : "Auto-Fill"}
                   </button>
+                  
+                  <label className="btn-reserve" style={{ flexGrow: 0, width: 'auto', padding: '0 1rem', background: 'var(--success-color)', color: '#FFF', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <ScanLine size={18} style={{ marginRight: '6px' }} /> {isSearching ? "Scanning..." : "Upload Barcode"}
+                    <input type="file" accept="image/*" onChange={handleBarcodeUpload} style={{ display: 'none' }} disabled={isSearching} />
+                  </label>
                 </div>
               </div>
+
               <div>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Serial Number(s)</label>
                 <p style={{ margin: '0.25rem 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>To add multiple items at once, separate serial numbers with a comma.</p>
@@ -218,7 +299,8 @@ export default function AdminDashboard() {
           <div>
             <div className="tech-card" style={{ padding: '2rem', background: 'var(--ucf-black)', color: 'white', borderTop: '4px solid var(--ucf-gold)' }}>
               <h3 style={{ marginTop: 0 }}>API Integration Active</h3>
-              <p style={{ color: '#CCC', lineHeight: 1.6 }}>This form is securely connected to our Third-Party API database. Type a keyword like <strong>"Macbook"</strong> or <strong>"Surface"</strong> into the Device Name box and click Auto-Fill.</p>
+              <p style={{ color: '#CCC', lineHeight: 1.6 }}><strong>Text Search:</strong> Type a keyword like "Macbook" or "TI-84" into the Device Name box and click Auto-Fill.</p>
+              <p style={{ color: '#CCC', lineHeight: 1.6 }}><strong>Barcode Scan:</strong> Click "Upload Barcode" to upload a photo of any standard UPC/EAN barcode. The system will extract the digits and query the global UPC database</p>
             </div>
           </div>
         </section>
