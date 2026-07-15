@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import './App.css'; 
 import AdminDashboard from './pages/AdminDashboard';
+import VerifyEmail from './pages/VerifyEmail';
+import OAuthCallback from './pages/OAuthCallback';
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -31,6 +33,10 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          {/* Landing page for verification links sent by email. */}
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          {/* Handles token handoff after backend completes Google OAuth callback. */}
+          <Route path="/oauth/callback" element={<OAuthCallback />} />
           <Route path="/admin" element={<AdminDashboard />} />
           {/* Updated the element to match our actual Dashboard component */}
           <Route path="/dashboard" element={<Dashboard />} />

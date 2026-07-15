@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom';
 import { Sun, Moon, User, LogOut } from 'lucide-react';
 
 export default function Navbar({ theme, toggleTheme }) {
-  // Check if a user is stored in the browser
+  // Navbar reads the cached user to determine which actions to show.
   const currentUser = JSON.parse(localStorage.getItem('user')); 
 
   const handleLogout = () => {
+    // Clear both identity payload and JWT so protected calls stop immediately.
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     window.location.href = '/';
   };
 

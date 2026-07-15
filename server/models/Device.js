@@ -18,11 +18,18 @@ const devicesSchema = new mongoose.Schema({
     ref: 'User', 
     default: null 
   }, 
+  // Audit trail of each checkout/return cycle for this device.
   rentalHistory: [{ 
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
     rentedAt: { type: Date }, 
     returnedAt: { type: Date } 
-  }] 
+  }],
+  // Tracks sent reminder keys so automated jobs do not send duplicates.
+  notificationLog: [{
+    key: { type: String, required: true },
+    type: { type: String, enum: ['reminder'], default: 'reminder' },
+    sentAt: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true }); 
 
 module.exports = mongoose.model('Device', devicesSchema);

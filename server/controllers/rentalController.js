@@ -1,10 +1,13 @@
 const Device = require('../models/Device');
-const User = require('../models/Users');
+const User = require('../models/users');
+const { sendCheckoutEmail, sendReturnEmail } = require('../services/emailService');
 
 
 exports.rentDevice = async (req,res) => { // Post - Rent a device to a student
     try{
-        const {deviceId, userId} = req.body;
+        const {deviceId} = req.body;
+        // User identity comes from JWT middleware, not request body.
+        const userId = req.user._id;
 
         const device = await Device.findById(deviceId);
         if(!device){
@@ -29,6 +32,14 @@ exports.rentDevice = async (req,res) => { // Post - Rent a device to a student
         user.activeRentals.push(deviceId);
         await user.save();
 
+        // Send best-effort transactional email after checkout state is committed.
+        await sendCheckoutEmail({
+            to: user.email,
+            name: user.name,
+            deviceName: device.name,
+            loanPeriod: device.loanPeriod || 'allotted period',
+        });
+
         res.status(200).json({
             message: `Success! Device checked out. Please return it within the standard ${device.loanPeriod || 'allotted'} loan period.`, 
             device 
@@ -41,7 +52,9 @@ exports.rentDevice = async (req,res) => { // Post - Rent a device to a student
 
 exports.returnDevice = async (req, res) => { //Post - takes care of a returned device
     try {
-        const { deviceId, userId } = req.body;
+        const { deviceId } = req.body;
+        // Return can only operate on rentals owned by the authenticated user.
+        const userId = req.user._id.toString();
 
         // 1. Verify the device exists
         const device = await Device.findById(deviceId);
@@ -66,6 +79,16 @@ exports.returnDevice = async (req, res) => { //Post - takes care of a returned d
         await User.findByIdAndUpdate(userId, {
             $pull: { activeRentals: deviceId }
         });
+
+        const user = await User.findById(userId);
+        if (user) {
+            // Send confirmation once inventory and rental history are updated.
+            await sendReturnEmail({
+                to: user.email,
+                name: user.name,
+                deviceName: device.name,
+            });
+        }
 
         res.status(200).json({ 
             message: "Device safely checked back into campus inventory!", 

@@ -26,6 +26,7 @@ export default function Home() {
 
   const fetchInventory = () => {
     setIsLoading(true);
+    // Inventory endpoint returns raw device rows; grouping happens client-side below.
     api.get('/devices')
       .then(response => {
         setItems(response.data.data || []);
@@ -106,7 +107,9 @@ export default function Home() {
   // Check Out Logic
   const handleConfirmReserve = async () => {
     const storedUser = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('token');
     if (!storedUser) return alert("Please log in to reserve a device!");
+    if (!token) return alert("Please log in again to continue.");
 
     if (selectedItem.restrictedTo !== 'All') {
       const userRole = storedUser.role.toLowerCase();
@@ -118,11 +121,12 @@ export default function Home() {
 
     try {
       setIsProcessing(true);
+      // If no location is selected, reserve from first location with available stock.
       let deviceIdToCheckout = selectedLocation === "All Locations" 
         ? Object.values(selectedItem.locations).find(l => l.availableCount > 0).availableIds[0]
         : selectedItem.locations[selectedLocation].availableIds[0];
 
-      const response = await api.post('/rentals/checkout', { deviceId: deviceIdToCheckout, userId: storedUser._id });
+      const response = await api.post('/rentals/checkout', { deviceId: deviceIdToCheckout });
       alert(response.data.message);
       fetchInventory(); 
       setSelectedItem(null); 
