@@ -43,17 +43,24 @@ app.get('/api/status', (req, res) => {
 });
 
 const deviceRoutes = require('./routes/deviceRoutes');
+// Device catalog endpoints (read + admin-managed writes).
 app.use('/api/devices', deviceRoutes);
 
 const rentalRoutes = require('./routes/rentalRoutes');
+// Rental lifecycle endpoints (checkout/return).
 app.use('/api/rentals', rentalRoutes);
 
 const userRoutes = require('./routes/userRoutes');
+// Authentication and account endpoints.
 app.use('/api/users', userRoutes);
+
+const adminRoutes = require('./routes/adminRoutes');
+// Admin-only utility endpoints (jobs, operational actions).
+app.use('/api/admin', adminRoutes);
 
 const connectDB = require('./config/Db'); // Import your teammate's file
 
-// Connect to the database
+// Connect database before accepting requests.
 connectDB();
 
 const PORT = process.env.PORT || 5000;

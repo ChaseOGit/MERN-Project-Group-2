@@ -8,19 +8,36 @@ export default function Dashboard() {
 
   const fetchUserData = () => {
     const storedUser = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('token');
     if (!storedUser) {
+      window.location.href = '/login';
+      return;
+    }
+    if (!token) {
       window.location.href = '/login';
       return;
     }
 
     setIsLoading(true);
+    // Backend returns profile data and rentals separately; merge for existing UI structure.
     api.get(`/users/${storedUser._id}`)
       .then(res => {
-        setUser(res.data.data);
+        const mergedUser = {
+          ...res.data.data,
+          activeRentals: res.data.activeRentals || [],
+        };
+        localStorage.setItem('user', JSON.stringify(mergedUser));
+        setUser(mergedUser);
         setIsLoading(false);
       })
       .catch(err => {
         console.error("Error fetching user data", err);
+        // Expired or invalid auth should force a clean re-login.
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
         setIsLoading(false);
       });
   };
@@ -31,9 +48,9 @@ export default function Dashboard() {
 
   const handleReturn = async (deviceId) => {
     try {
+      // User ID is inferred server-side from JWT; only device ID is required.
       const response = await api.post('/rentals/return', {
-        deviceId: deviceId,
-        userId: user._id
+        deviceId: deviceId
       });
       
       alert(response.data.message); 
