@@ -126,3 +126,19 @@ exports.getMyLoans = async (req, res) => {
         res.status(500).json({ message: "Error fetching loans", error: error.message });
     }
 };
+
+exports.filterItems = async (req, res) => {
+    try {
+        const { location, category, accountType } = req.query;
+        let query = {};
+
+        if (location) query.location = location;
+        if (category) query.category = category;
+        if (accountType) query.accountType = accountType;
+
+        const items = await Device.find(query);
+        res.status(200).json(items);
+    } catch (error) {
+        res.status(500).json({ message: "Error filtering items", error: error.message });
+    }
+};
