@@ -69,3 +69,14 @@ exports.returnDevice = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+exports.getMyLoans = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        // Make sure 'Transactions' is imported at the top of your loanController.js file too!
+        const loans = await Transactions.find({ UserID: userId, Status: 'active' })
+            .populate('ItemID', 'name model'); 
+        res.status(200).json(loans);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching loans", error: error.message });
+    }
+};
