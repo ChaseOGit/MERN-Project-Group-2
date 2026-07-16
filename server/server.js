@@ -24,7 +24,7 @@ const swaggerOptions = {
             { url: 'http://localhost:5000' }
         ],
     },
-    apis: ['./routes.js'], // Typically you point this to a routes folder
+    apis: ['./routes/*.js''], // Typically you point this to a routes folder
 };
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDocs));
