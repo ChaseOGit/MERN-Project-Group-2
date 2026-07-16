@@ -34,12 +34,17 @@ exports.rentDevice = async (req,res) => { // Post - Rent a device to a student
         await user.save();
 
         // Send best-effort transactional email after checkout state is committed.
-        await sendCheckoutEmail({
-            to: user.email,
-            name: user.name,
-            deviceName: device.name,
-            loanPeriod: device.loanPeriod || 'allotted period',
-        });
+       try {
+            await sendCheckoutEmail({
+                to: user.email,
+                name: user.name,
+                deviceName: device.name,
+                loanPeriod: device.loanPeriod || 'allotted period',
+            });
+        } catch (emailError) {
+            // Log it for debugging, but don't let it stop the success flow
+            console.error("Email service failed, but checkout was saved:", emailError);
+        }
 
         await Transactions.create({
         UserID: userId,
