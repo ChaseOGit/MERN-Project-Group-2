@@ -33,6 +33,13 @@ exports.rentDevice = async (req,res) => { // Post - Rent a device to a student
         user.activeRentals.push(deviceId);
         await user.save();
 
+        await Transactions.create({
+            UserID: userId,
+            ItemID: deviceId,
+            Status: 'active',
+            ConditionAtCheckout: req.body.conditionAtCheckout || 'Good'
+        });
+
         // Send best-effort transactional email after checkout state is committed.
 
         await sendCheckoutEmail({
