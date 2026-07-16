@@ -41,6 +41,13 @@ exports.rentDevice = async (req,res) => { // Post - Rent a device to a student
             loanPeriod: device.loanPeriod || 'allotted period',
         });
 
+        await Transactions.create({
+        UserID: userId,
+        ItemID: deviceId,
+        Status: 'active',
+        ConditionAtCheckout: req.body.conditionAtCheckout || 'Good'
+        });
+
         res.status(200).json({
             message: `Success! Device checked out. Please return it within the standard ${device.loanPeriod || 'allotted'} loan period.`, 
             device 
@@ -75,6 +82,11 @@ exports.returnDevice = async (req, res) => { //Post - takes care of a returned d
             currentLog.returnedAt = new Date();
         }
         await device.save();
+
+        await Transactions.findOneAndUpdate(
+            { UserID: userId, ItemID: deviceId, Status: 'active' },
+            { Status: 'returned', ReturnDate: new Date(), ConditionAtReturn: req.body.conditionAtReturn || 'Good' }
+        );
 
         // 4. Take the device completely out of that specific student's activeRentals array
         await User.findByIdAndUpdate(userId, {
