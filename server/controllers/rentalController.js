@@ -33,11 +33,16 @@ exports.rentDevice = async (req,res) => { // Post - Rent a device to a student
         user.activeRentals.push(deviceId);
         await user.save();
 
+        const loanDays = parseInt(device.loanPeriod) || 7; // Default to 7 if loanPeriod is undefined
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + loanDays);
+        
         const newTransaction = await Transactions.create({
             UserID: userId,
             ItemID: deviceId,
             Status: 'active',
-            ConditionAtCheckout: req.body.conditionAtCheckout || 'Good'
+            ConditionAtCheckout: req.body.conditionAtCheckout || 'Good',
+            DueDate: dueDate
         });
 
         // Send best-effort transactional email after checkout state is committed.
