@@ -29,6 +29,8 @@ const transactionSchema = new mongoose.Schema({
       type: Number,
       default: 0
     }
+    ConditionAtCheckout: { type: String, required: true },
+    ConditionAtReturn: { type: String }
   }, { timestamps: true });
   
   module.exports = mongoose.model('Transaction', transactionSchema);
