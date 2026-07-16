@@ -1,3 +1,4 @@
+const Transactions = require('../models/Transactions');
 const Device = require('../models/Device');
 const User = require('../models/users');
 const { sendCheckoutEmail, sendReturnEmail } = require('../services/emailService');
@@ -97,5 +98,19 @@ exports.returnDevice = async (req, res) => { //Post - takes care of a returned d
 
     } catch (error) {
         res.status(500).json({ message: "Backend return process error", error: error.message });
+    }
+};
+
+
+exports.getMyLoans = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        // Find only active rentals for this specific user
+        const loans = await Transactions.find({ UserID: userId, Status: 'active' })
+            .populate('ItemID', 'name model'); // This pulls in the device name/model for your UI
+
+        res.status(200).json(loans);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching loans", error: error.message });
     }
 };
