@@ -34,23 +34,12 @@ exports.rentDevice = async (req,res) => { // Post - Rent a device to a student
         await user.save();
 
         // Send best-effort transactional email after checkout state is committed.
-       try {
-            await sendCheckoutEmail({
-                to: user.email,
-                name: user.name,
-                deviceName: device.name,
-                loanPeriod: device.loanPeriod || 'allotted period',
-            });
-        } catch (emailError) {
-            // Log it for debugging, but don't let it stop the success flow
-            console.error("Email service failed, but checkout was saved:", emailError);
-        }
 
-        await Transactions.create({
-        UserID: userId,
-        ItemID: deviceId,
-        Status: 'active',
-        ConditionAtCheckout: req.body.conditionAtCheckout || 'Good'
+        await sendCheckoutEmail({
+            to: user.email,
+            name: user.name,
+            deviceName: device.name,
+            loanPeriod: device.loanPeriod || 'allotted period',
         });
 
         res.status(200).json({
@@ -58,8 +47,6 @@ exports.rentDevice = async (req,res) => { // Post - Rent a device to a student
             device 
         });
     } catch(error) {
-        console.error("--- DEBUGGING RENT DEVICE ERROR ---");
-        console.error(error); // This will show exactly which line is failing
         res.status(500).json({ message: "Backend checkout runtime error", error: error.message });
     }
 };
