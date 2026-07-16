@@ -5,11 +5,10 @@ const router = express.Router();
 const { requireAuth, requireVerifiedEmail } = require('../middleware/authMiddleware');
 
 // Import the functions from the controller
-const { checkoutDevice, returnDevice, getMyLoans } = require('../controllers/loanController');
+const { rentDevice, returnDevice, checkoutDevice, getMyLoans } = require('../controllers/rentalController');
 
 //  Define the endpoints (Protected by the JWT security checks)
 router.post('/checkout', requireAuth, requireVerifiedEmail, rentDevice);
 router.post('/return', requireAuth, requireVerifiedEmail, returnDevice);
-router.get('/my-loans', requireAuth, getMyLoans);
 
 module.exports = router;
