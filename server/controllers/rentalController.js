@@ -58,6 +58,8 @@ exports.rentDevice = async (req,res) => { // Post - Rent a device to a student
             device 
         });
     } catch(error) {
+        console.error("--- DEBUGGING RENT DEVICE ERROR ---");
+        console.error(error); // This will show exactly which line is failing
         res.status(500).json({ message: "Backend checkout runtime error", error: error.message });
     }
 };
