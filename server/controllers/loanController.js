@@ -1,12 +1,17 @@
-const Transactions = require('../models/Transactions'); 
+const Transactions = require('../models/Transactions');
 const Device = require('../models/Device');
 const User = require('../models/Users');
 
 exports.checkoutDevice = async (req, res) => {
     try {
-        const { UserID, ItemID, DueDate } = req.body;
+        const { UserID, ItemID, DueDate, ConditionAtCheckout } = req.body;
       
-        const newTransaction = new Transactions({ UserID, ItemID, DueDate });
+        const newTransaction = new Transactions({ 
+            UserID, 
+            ItemID, 
+            DueDate, 
+            ConditionAtCheckout 
+        });
         await newTransaction.save();
 
         await Device.findByIdAndUpdate(ItemID, { 
@@ -24,10 +29,10 @@ exports.checkoutDevice = async (req, res) => {
     }
 };
 
-
 exports.returnDevice = async (req, res) => {
     try {
         const { id } = req.params; 
+        const { ConditionAtReturn } = req.body;
         const transaction = await Transactions.findById(id); 
 
         if (!transaction) return res.status(404).json({ message: 'Transaction not found' });
@@ -42,17 +47,15 @@ exports.returnDevice = async (req, res) => {
             fine = diffDays * dailyFineRate;
         }
 
-
         transaction.FineAmount = fine;
         transaction.Status = 'returned';
+        transaction.ConditionAtReturn = ConditionAtReturn; 
         await transaction.save();
-
 
         await Device.findByIdAndUpdate(transaction.ItemID, { 
             isAvailable: true, 
             currentRenter: null 
         });
-
 
         await User.findByIdAndUpdate(transaction.UserID, { 
             $pull: { activeRentals: transaction.ItemID } 
