@@ -28,7 +28,7 @@ const transactionSchema = new mongoose.Schema({
     FineAmount: {
       type: Number,
       default: 0
-    }
+    },
     ConditionAtCheckout: { type: String, required: true },
     ConditionAtReturn: { type: String }
   }, { timestamps: true });
