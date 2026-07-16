@@ -3,7 +3,7 @@ const router = express.Router();
 const { requireAuth, requireVerifiedEmail } = require('../middleware/authMiddleware');
 
 // Import the rental controller file you made earlier
-const { checkoutDevice, returnDevice, getMyLoans } = require('../controllers/loanController');
+const { checkoutDevice, returnDevice, getMyLoans } = require('../controllers/rentalController');
 
 // Both endpoints require a signed-in user with verified email.
 router.post('/checkout', requireAuth, requireVerifiedEmail, rentDevice);
