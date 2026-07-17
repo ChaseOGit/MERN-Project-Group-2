@@ -123,9 +123,10 @@ exports.returnDevice = async (req, res) => { //Post - takes care of a returned d
 exports.getMyLoans = async (req, res) => {
     try {
         const userId = req.user._id;
+        
         // Find only active rentals for this specific user
         const loans = await Transactions.find({ UserID: userId, Status: 'active' })
-            .populate('ItemID', 'name model'); // This pulls in the device name/model for your UI
+            .populate('ItemID'); 
 
         res.status(200).json(loans);
     } catch (error) {
