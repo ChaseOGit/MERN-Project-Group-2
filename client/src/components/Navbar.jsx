@@ -1,8 +1,11 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Sun, Moon, User, LogOut } from 'lucide-react';
 
 export default function Navbar({ theme, toggleTheme }) {
+  const location = useLocation(); 
+
   // Navbar reads the cached user to determine which actions to show.
+  // Because useLocation() triggers a re-render on navigation, this always stays up to date
   const currentUser = JSON.parse(localStorage.getItem('user')); 
 
   const handleLogout = () => {
@@ -36,6 +39,7 @@ export default function Navbar({ theme, toggleTheme }) {
               <Link to="/dashboard" className="btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center', textDecoration: 'none' }}>
                 <User size={18} /> Dashboard
               </Link>
+              
               <button onClick={handleLogout} className="btn-nav-outline" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <LogOut size={18} /> Logout
               </button>
