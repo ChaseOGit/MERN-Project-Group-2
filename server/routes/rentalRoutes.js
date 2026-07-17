@@ -29,6 +29,7 @@ const { rentDevice, returnDevice, getMyLoans, filterItems } = require('../contro
  *         description: Device successfully checked out
  */
 router.post('/checkout', requireAuth, requireVerifiedEmail, rentDevice);
+
 /**
  * @swagger
  * /api/rentals/return:
@@ -49,6 +50,19 @@ router.post('/checkout', requireAuth, requireVerifiedEmail, rentDevice);
  *         description: Device successfully returned
  */
 router.post('/return', requireAuth, requireVerifiedEmail, returnDevice);
+
+/**
+ * @swagger
+ * /api/rentals/my-loans:
+ *   get:
+ *     summary: Get all active loans for the logged-in user
+ *     tags: [Rental]
+ *     responses:
+ *       200:
+ *         description: A list of active transactions
+ */
+router.get('/my-loans', requireAuth, getMyLoans);
+
 /**
  * @swagger
  * /api/rentals/items:
