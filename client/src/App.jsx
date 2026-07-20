@@ -8,6 +8,7 @@ import './App.css';
 import AdminDashboard from './pages/AdminDashboard';
 import VerifyEmail from './pages/VerifyEmail';
 import OAuthCallback from './pages/OAuthCallback';
+import CirculationDesk from './pages/CirculationDesk';
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -40,6 +41,7 @@ function App() {
           <Route path="/admin" element={<AdminDashboard />} />
           {/* Updated the element to match our actual Dashboard component */}
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/desk" element={<CirculationDesk />} />
         </Routes>
       </div>
     </Router>

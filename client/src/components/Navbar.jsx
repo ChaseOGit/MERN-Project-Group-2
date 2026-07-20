@@ -2,10 +2,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { Sun, Moon, User, LogOut } from 'lucide-react';
 
 export default function Navbar({ theme, toggleTheme }) {
+  // Navbar re-render every time the URL changes
   const location = useLocation(); 
 
   // Navbar reads the cached user to determine which actions to show.
-  // Because useLocation() triggers a re-render on navigation, this always stays up to date
+  // Because useLocation() triggers a re-render on navigation, this always stays up to date!
   const currentUser = JSON.parse(localStorage.getItem('user')); 
 
   const handleLogout = () => {
@@ -29,7 +30,14 @@ export default function Navbar({ theme, toggleTheme }) {
           
           {currentUser ? (
             <>
-              {/* Show Admin Portal button only if role is Admin */}
+              {/* Show Circulation Desk to BOTH Faculty and Admins */}
+              {(currentUser.role === 'Admin' || currentUser.role === 'Faculty') && (
+                <Link to="/desk" className="btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center', textDecoration: 'none', backgroundColor: 'var(--ucf-black)', color: 'var(--ucf-gold)', border: '1px solid var(--ucf-gold)' }}>
+                  Circulation Desk
+                </Link>
+              )}
+
+              {/* Show Admin Portal ONLY to Admins */}
               {currentUser.role === 'Admin' && (
                 <Link to="/admin" className="btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center', textDecoration: 'none', backgroundColor: '#EF4444', color: '#FFF' }}>
                   Admin
