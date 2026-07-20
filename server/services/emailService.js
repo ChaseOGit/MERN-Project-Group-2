@@ -1,49 +1,23 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-let transporter = null;
-
-// Creates one reusable SMTP transporter per process; returns null in mock mode.
-function createTransporter() {
-  if (transporter) {
-    return transporter;
-  }
-
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-
-  if (!host || !user || !pass) {
-    return null;
-  }
-
-  transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  });
-
-  return transporter;
-}
+// Initialize Resend (Returns null if API key is missing)
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Frontend host is used to generate clickable links in outbound emails.
 function frontendBaseUrl() {
   return process.env.FRONTEND_URL || 'http://localhost:5173';
 }
 
-// Centralized sender identity keeps all transactional mail consistent.
+// Centralized sender identity
 function fromAddress() {
-  return process.env.EMAIL_FROM || 'noreply@ucftechlib.local';
+  // Free Resend accounts MUST use onboarding@resend.dev
+  return process.env.EMAIL_FROM || 'onboarding@resend.dev'; 
 }
 
-// If SMTP is not configured, log to console so development can continue safely.
-// 🚀 UPGRADED: Added heavy error logging to catch missing .env vars and Google Auth failures!
+// 🚀 UPGRADED: Now uses Resend HTTP API instead of Nodemailer SMTP
 async function sendMail({ to, subject, text, html }) {
-  const client = createTransporter();
-
-  if (!client) {
-    console.log('\n⚠️ [EMAIL:MOCK MODE ACTIVE] SMTP variables are missing in the .env file!');
+  if (!resend) {
+    console.log('\n⚠️ [EMAIL:MOCK MODE ACTIVE] RESEND_API_KEY is missing in the .env file!');
     console.log(`Pretending to send email to: ${to}`);
     console.log(`Subject: ${subject}`);
     console.log(`Body:\n${text}\n`);
@@ -51,14 +25,27 @@ async function sendMail({ to, subject, text, html }) {
   }
 
   try {
-    const info = await client.sendMail({ from: fromAddress(), to, subject, text, html });
-    console.log('✅ [EMAIL:SUCCESS] Email actually sent to:', to);
-    return info;
+    const { data, error } = await resend.emails.send({
+      from: `UCF Tech Lending <${fromAddress()}>`,
+      to: [to],
+      subject: subject,
+      html: html,
+      text: text
+    });
+
+    if (error) {
+      console.error('\n❌ [RESEND:API ERROR] Resend rejected the email!');
+      console.error('NOTE: On the free tier, you can only send emails to the address you registered your Resend account with!');
+      console.error(error);
+      throw error;
+    }
+
+    console.log('✅ [RESEND:SUCCESS] Email successfully sent to:', to);
+    return data;
   } catch (error) {
-    console.error('\n❌ [EMAIL:ERROR] Nodemailer failed to send the email!');
-    console.error('This usually means the App Password in the .env is wrong, or the SMTP_PORT is incorrect.');
+    console.error('\n❌ [RESEND:ERROR] Failed to execute email send request.');
     console.error(error);
-    throw error; // Force the frontend to know the email failed!
+    throw error;
   }
 }
 
