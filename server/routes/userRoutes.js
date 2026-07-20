@@ -1,28 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const {
-  register,
-  login,
-  getProfile,
-  getMe,
-  verifyEmail,
-  resendVerification,
-  forgotPassword,
-  resetPassword,
-  startGoogleOAuth,
-  googleCallback,
+  register, login, getProfile, getMe, verifyEmail,
+  resendVerification, forgotPassword, resetPassword,
+  startGoogleOAuth, googleCallback
 } = require('../controllers/userController');
-const {
-  requireAuth,
-  requireVerifiedEmail,
-} = require('../middleware/authMiddleware');
+const { requireAuth, requireVerifiedEmail } = require('../middleware/authMiddleware');
 
-// Local auth and account lifecycle endpoints.
 /**
  * @swagger
  * /api/users/register:
  *   post:
- *     summary: Register a new user
+ *     summary: Register a new local account
  *     tags: [Users]
  *     requestBody:
  *       required: true
@@ -30,19 +19,23 @@ const {
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [name, email, password]
  *             properties:
+ *               name: { type: string }
  *               email: { type: string }
  *               password: { type: string }
+ *               role: { type: string, enum: [Student, Faculty, Admin] }
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: Registration successful (Email verification required)
  */
 router.post('/register', register);
+
 /**
  * @swagger
  * /api/users/login:
  *   post:
- *     summary: Log in a user
+ *     summary: Log into a local account
  *     tags: [Users]
  *     requestBody:
  *       required: true
@@ -50,124 +43,45 @@ router.post('/register', register);
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [email, password]
  *             properties:
  *               email: { type: string }
  *               password: { type: string }
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful (Returns JWT Token)
+ *       401:
+ *         description: Invalid credentials
+ *       403:
+ *         description: Email is not verified
  */
 router.post('/login', login);
-/**
- * @swagger
- * /api/users/verify-email:
- *   post:
- *     summary: Verify user email
- *     tags: [Users]
- *     responses:
- *       200:
- *         description: Email verified
- */
-router.post('/verify-email', verifyEmail);
-/**
- * @swagger
- * /api/users/resend-verification:
- *   post:
- *     summary: Resend verification email
- *     tags: [Users]
- *     responses:
- *       200:
- *         description: Email resent
- */
-router.post('/resend-verification', resendVerification);
-/**
- * @swagger
- * /api/users/forgot-password:
- *   post:
- *     summary: Request password reset
- *     tags: [Users]
- *     responses:
- *       200:
- *         description: Reset link sent
- */
-router.post('/forgot-password', forgotPassword);
-/**
- * @swagger
- * /api/users/reset-password:
- *   post:
- *     summary: Reset password with token
- *     tags: [Users]
- *     responses:
- *       200:
- *         description: Password updated
- */
-router.post('/reset-password', resetPassword);
-
-// Google OAuth entry and callback.
-/**
- * @swagger
- * /api/users/oauth/google:
- *   get:
- *     summary: Initiate Google OAuth
- *     tags: [Users]
- *     responses:
- *       302:
- *         description: Redirects to Google
- *
- * /api/users/oauth/google/callback:
- *   get:
- *     summary: Google OAuth callback
- *     tags: [Users]
- *     responses:
- *       200:
- *         description: Authentication successful
- */
-router.get('/oauth/google', startGoogleOAuth);
-/**
- * @swagger
- * /api/users/oauth/google/callback:
- *   get:
- *     summary: Google OAuth callback
- *     tags: [Users]
- *     responses:
- *       200:
- *         description: Authentication successful
- *       401:
- *         description: Authentication failed
- */
-router.get('/oauth/google/callback', googleCallback);
 
 /**
  * @swagger
  * /api/users/me:
  *   get:
- *     summary: Get current user profile
+ *     summary: Get logged-in user's profile
  *     tags: [Users]
  *     responses:
  *       200:
- *         description: Returns current user data
+ *         description: Returns the user object
+ *       401:
+ *         description: Unauthorized (Token missing or invalid)
  */
 router.get('/me', requireAuth, getMe);
-// Profile-by-id stays verified-only to avoid exposing unverified accounts.
-/**
- * @swagger
- * /api/users/{id}:
- *   get:
- *     summary: Get user profile by ID
- *     tags: [Users]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: User profile details
- *       401:
- *         description: Unauthorized - Login required
- *       403:
- *         description: Forbidden - Email verification required
- */
+
+// Other Auth & Lifecycle endpoints
+router.post('/verify-email', verifyEmail);
+router.post('/resend-verification', resendVerification);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
+
+// Google OAuth endpoints
+router.get('/oauth/google', startGoogleOAuth);
+router.get('/oauth/google/callback', googleCallback);
+
+// Profile by ID
 router.get('/:id', requireAuth, requireVerifiedEmail, getProfile);
 
 module.exports = router;
