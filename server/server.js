@@ -20,11 +20,14 @@ const swaggerOptions = {
             version: '1.0.0',
             description: 'API documentation for our MERN project',
         },
+        // Add the live production URL so Swagger knows where to send requests
         servers: [
-            { url: 'http://localhost:5000' }
+            { url: 'https://cis4004chase.xyz', description: 'Live Production Server' },
+            { url: 'http://localhost:5000', description: 'Local Development Server' }
         ],
     },
-    apis: ['./routes/*.js'], // Typically you point this to a routes folder
+    // Tell Swagger to read the comments inside the routes folder
+    apis: ['./server.js', './routes/*.js'], 
 };
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDocs));
