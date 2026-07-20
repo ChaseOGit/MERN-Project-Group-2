@@ -38,15 +38,28 @@ function fromAddress() {
 }
 
 // If SMTP is not configured, log to console so development can continue safely.
+// 🚀 UPGRADED: Added heavy error logging to catch missing .env vars and Google Auth failures!
 async function sendMail({ to, subject, text, html }) {
   const client = createTransporter();
 
   if (!client) {
-    console.log('[email:mock]', { to, subject, text });
+    console.log('\n⚠️ [EMAIL:MOCK MODE ACTIVE] SMTP variables are missing in the .env file!');
+    console.log(`Pretending to send email to: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Body:\n${text}\n`);
     return { mocked: true };
   }
 
-  return client.sendMail({ from: fromAddress(), to, subject, text, html });
+  try {
+    const info = await client.sendMail({ from: fromAddress(), to, subject, text, html });
+    console.log('✅ [EMAIL:SUCCESS] Email actually sent to:', to);
+    return info;
+  } catch (error) {
+    console.error('\n❌ [EMAIL:ERROR] Nodemailer failed to send the email!');
+    console.error('This usually means the App Password in the .env is wrong, or the SMTP_PORT is incorrect.');
+    console.error(error);
+    throw error; // Force the frontend to know the email failed!
+  }
 }
 
 // Sends verification link used to activate newly created local accounts.
