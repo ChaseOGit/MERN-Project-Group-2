@@ -145,17 +145,25 @@ export default function Home() {
         <div className="search-wrapper">
           <Search size={20} className="search-icon" />
           <input 
-            type="text" placeholder="Search laptops, cameras, adapters..." 
-            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            type="text" 
+            placeholder="Search laptops, cameras, adapters..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
+            aria-label="Search inventory" /* FIXED: Added ARIA label for screen readers */
           />
           {searchTerm && (
-            <button onClick={() => setSearchTerm("")} className="clear-search-btn"><X size={18} /></button>
+            <button onClick={() => setSearchTerm("")} className="clear-search-btn" aria-label="Clear search"><X size={18} /></button>
           )}
         </div>
 
         <div className="filter-dropdowns">
-          <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="location-select">
+          <select 
+            value={selectedLocation} 
+            onChange={(e) => setSelectedLocation(e.target.value)} 
+            className="location-select"
+            aria-label="Filter by location" /* FIXED: Added ARIA label for screen readers */
+          >
             <option value="All Locations">🌍 All Locations</option>
             <option value="John C. Hitt Library">📚 John C. Hitt Library</option>
             <option value="Downtown Campus">🏢 Downtown Campus</option>
@@ -168,11 +176,12 @@ export default function Home() {
             className="refresh-btn"
             style={{ backgroundColor: showAdvancedFilters ? 'var(--ucf-black)' : 'var(--bg-surface)', color: showAdvancedFilters ? 'var(--ucf-gold)' : 'var(--text-main)' }}
             title="Advanced Filters"
+            aria-label="Toggle Advanced Filters"
           >
             <SlidersHorizontal size={20} />
           </button>
           
-          <button onClick={fetchInventory} className="refresh-btn" title="Refresh Data">
+          <button onClick={fetchInventory} className="refresh-btn" title="Refresh Data" aria-label="Refresh Data">
             <RefreshCw size={20} className={isLoading ? "spin-animation" : ""} />
           </button>
         </div>
@@ -183,8 +192,8 @@ export default function Home() {
         <section style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', padding: '1rem', backgroundColor: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
           
           <div style={{ flex: '1 1 200px' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'block' }}>Loan Period</label>
-            <select value={selectedLoanPeriod} onChange={(e) => setSelectedLoanPeriod(e.target.value)} className="location-select" style={{ width: '100%' }}>
+            <label htmlFor="loan-period-select" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'block' }}>Loan Period</label>
+            <select id="loan-period-select" value={selectedLoanPeriod} onChange={(e) => setSelectedLoanPeriod(e.target.value)} className="location-select" style={{ width: '100%' }}>
               <option value="All">All Loan Periods</option>
               {availableLoanPeriods.map(period => (
                 <option key={period} value={period}>{period}</option>
@@ -193,8 +202,8 @@ export default function Home() {
           </div>
 
           <div style={{ flex: '1 1 200px' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'block' }}>Eligible User</label>
-            <select value={selectedEligibility} onChange={(e) => setSelectedEligibility(e.target.value)} className="location-select" style={{ width: '100%' }}>
+            <label htmlFor="eligibility-select" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'block' }}>Eligible User</label>
+            <select id="eligibility-select" value={selectedEligibility} onChange={(e) => setSelectedEligibility(e.target.value)} className="location-select" style={{ width: '100%' }}>
               <option value="All">All Users</option>
               {availableRoles.map(role => (
                 <option key={role} value={role}>{role === 'All' ? 'Open to Everyone' : `${role}s Only`}</option>
@@ -213,7 +222,7 @@ export default function Home() {
 
       {/* --- UNIFIED CATEGORY PILLS --- */}
       <section>
-        <div className="category-group">
+        <div className="category-group" role="group" aria-label="Filter by category">
           {/* Catagories */}
           {["All", "Laptops", "Tablets", "Cameras", "Audio & Video", "Calculators", "Accessories"].map(cat => (
             <button key={cat} className={`filter-btn ${activeCategory === cat ? "active" : ""}`} onClick={() => setActiveCategory(cat)}>
@@ -280,17 +289,17 @@ export default function Home() {
       {/* --- QUICK VIEW / CHECKOUT MODAL --- */}
       {selectedItem && (
         <div className="modal-backdrop" onClick={() => setSelectedItem(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '0', overflow: 'hidden' }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '0', overflow: 'hidden' }} role="dialog" aria-labelledby="modal-title" aria-modal="true">
             
             <div style={{ position: 'relative', backgroundColor: '#FFFFFF', borderBottom: '1px solid var(--border-color)', height: '250px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <button onClick={() => setSelectedItem(null)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}>
+              <button onClick={() => setSelectedItem(null)} aria-label="Close modal" style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}>
                 <X size={20} />
               </button>
               <img src={selectedItem.image} alt={selectedItem.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', padding: '1rem' }} />
             </div>
 
             <div style={{ padding: '2rem' }}>
-              <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: 800 }}>{selectedItem.name}</h2>
+              <h2 id="modal-title" style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: 800 }}>{selectedItem.name}</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>{selectedItem.description}</p>
               
               <div className="modal-info-box" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: 0 }}>
