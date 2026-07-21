@@ -17,7 +17,7 @@
   --success-bg: #D1FAE5;
   --error-color: #DC2626;
   --error-bg: #FEE2E2;
-  --warning-color: #D97706;
+  --warning-color: #B45309; /* Darkened for Light Mode to guarantee WCAG 4.5:1 contrast */
   --warning-bg: #FEF3C7;
 
   --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
@@ -37,6 +37,11 @@
   --success-bg: rgba(5, 150, 105, 0.15);
   --error-bg: rgba(220, 38, 38, 0.15);
   --warning-bg: rgba(217, 119, 6, 0.15);
+
+  /* Brighter status text colors to pass Lighthouse AA/AAA on dark backgrounds */
+  --success-color: #34d399; 
+  --error-color: #f87171;   
+  --warning-color: #fbbf24; 
   
   --shadow-md: 0 10px 15px -3px rgba(0,0,0,0.8);
 }
@@ -164,7 +169,6 @@ body {
   cursor: pointer;
   transition: var(--transition); 
   
-  
   display: flex; 
   align-items: center; 
   justify-content: center;
@@ -186,6 +190,12 @@ body {
   color: var(--ucf-gold); 
   border-color: var(--ucf-black); 
 }
+
+/* UCF Gold outline for active category pills in dark mode so they stand out */
+[data-theme='dark'] .filter-btn.active {
+  border-color: var(--ucf-gold);
+}
+
 /* --- TECH CARDS (Slickdeals Style) --- */
 .inventory-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;
