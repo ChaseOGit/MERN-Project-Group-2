@@ -13,7 +13,7 @@ app.use(express.json());
 
 // Swagger Configuration (Fulfills your Swagger requirement)
 const swaggerOptions = {
-  swaggerDefinition: {
+  definition: {
     openapi: '3.0.0',
     info: {
       title: 'MERN Group 2 API',
