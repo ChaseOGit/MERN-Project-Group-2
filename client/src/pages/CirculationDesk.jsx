@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, UserCircle, Package, ArrowRightLeft, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Search, UserCircle, Package, ArrowRightLeft, AlertTriangle, CheckCircle, Clock, MousePointerClick, List, X } from 'lucide-react';
 import api from '../services/api';
 
 export default function CirculationDesk() {
@@ -16,6 +16,10 @@ export default function CirculationDesk() {
   const [returnCondition, setReturnCondition] = useState('Good');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Demo Helpers
+  const [allDevices, setAllDevices] = useState([]);
+  const [showDemoModal, setShowDemoModal] = useState(false);
+
   // Security Check: Allow Admin and Faculty
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -24,6 +28,8 @@ export default function CirculationDesk() {
       window.location.href = '/';
     } else {
       setIsAuthorized(true);
+      // Fetch devices for the Demo Cheat Sheet
+      api.get('/devices').then(res => setAllDevices(res.data.data)).catch(console.error);
     }
   }, []);
 
@@ -62,7 +68,6 @@ export default function CirculationDesk() {
     setIsProcessing(true);
 
     try {
-      // Translate the Serial Number into a Device ID
       const deviceRes = await api.get(`/devices`);
       const device = deviceRes.data.data.find(d => d.serialNumber === serialNumber.trim());
       
@@ -99,15 +104,22 @@ export default function CirculationDesk() {
         }
       }
 
-      // Clear the input and refresh the student profile to show the new data instantly
       setSerialNumber('');
       if (selectedStudent) loadStudentProfile(selectedStudent.user._id); 
+      // Refresh demo inventory list
+      api.get('/devices').then(res => setAllDevices(res.data.data));
       
     } catch (error) {
       alert(error.response?.data?.message || "Transaction failed.");
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // 🚀 DEMO HELPER: Click a row to auto-fill the serial number
+  const handleRowClick = (sn, action) => {
+    setSerialNumber(sn);
+    setActionType(action);
   };
 
   if (!isAuthorized) return null;
@@ -175,18 +187,51 @@ export default function CirculationDesk() {
 
               {/* Transactions List */}
               <div style={{ padding: '1.5rem' }}>
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0, color: 'var(--ucf-gold)' }}>
+                
+                {/* 🚀 NEW: Pending Reservations */}
+                {selectedStudent.transactions.filter(t => t.Status === 'reserved').length > 0 && (
+                  <>
+                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0, color: 'var(--ucf-gold)' }}>
+                      <Clock size={18} /> Pending Web Reservations
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '-0.5rem 0 0.5rem 0' }}>💡 Demo Tip: Click a row to auto-fill the Serial Number!</p>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', fontSize: '0.9rem' }}>
+                      <tbody>
+                        {selectedStudent.transactions.filter(t => t.Status === 'reserved').map(t => (
+                          <tr 
+                            key={t._id} 
+                            onClick={() => handleRowClick(t.ItemID?.serialNumber, 'checkout')}
+                            style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>{t.ItemID?.name}</td>
+                            <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>SN: {t.ItemID?.serialNumber}</td>
+                            <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: 'var(--ucf-gold)' }}><MousePointerClick size={16} /> Checkout</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0, color: 'var(--success-color)' }}>
                   <Package size={18} /> Currently Checked Out
                 </h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '-0.5rem 0 0.5rem 0' }}>💡 Demo Tip: Click a row to auto-fill the Serial Number!</p>
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', fontSize: '0.9rem' }}>
                   <tbody>
                     {selectedStudent.transactions.filter(t => t.Status === 'active').map(t => (
-                      <tr key={t._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>{t.ItemID?.name}</td>
-                        <td style={{ padding: '0.75rem 0', color: 'var(--text-muted)' }}>SN: {t.ItemID?.serialNumber}</td>
-                        <td style={{ padding: '0.75rem 0', textAlign: 'right', color: new Date() > new Date(t.DueDate) ? 'var(--error-color)' : 'var(--text-main)' }}>
-                          Due: {new Date(t.DueDate).toLocaleDateString()}
-                        </td>
+                      <tr 
+                        key={t._id} 
+                        onClick={() => handleRowClick(t.ItemID?.serialNumber, 'return')}
+                        style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>{t.ItemID?.name}</td>
+                        <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>SN: {t.ItemID?.serialNumber}</td>
+                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: 'var(--success-color)' }}><MousePointerClick size={16} /> Return</td>
                       </tr>
                     ))}
                     {selectedStudent.transactions.filter(t => t.Status === 'active').length === 0 && <tr><td colSpan="3" style={{ padding: '0.75rem 0', color: 'var(--text-muted)' }}>No active rentals.</td></tr>}
@@ -222,7 +267,7 @@ export default function CirculationDesk() {
           <div style={{ display: 'flex', background: 'var(--bg-app)', padding: '0.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
             <button 
               onClick={() => setActionType('checkout')}
-              style={{ flex: 1, padding: '1rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', transition: '0.2s', background: actionType === 'checkout' ? 'var(--ucf-gold)' : 'transparent', color: actionType === 'checkout' ? 'var(--ucf-black)' : 'var(--text-muted)', boxShadow: actionType === 'checkout' ? 'var(--shadow-sm)' : 'none' }}
+              style={{ flex: 1, padding: '1rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', transition: '0.2s', background: actionType === 'checkout' ? 'var(--ucf-gold)' : 'transparent', color: actionType === 'checkout' ? '#000' : 'var(--text-muted)', boxShadow: actionType === 'checkout' ? 'var(--shadow-sm)' : 'none' }}
             >
               Check Out
             </button>
@@ -238,13 +283,21 @@ export default function CirculationDesk() {
           <form onSubmit={handleDeskAction} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             <div style={{ background: 'var(--bg-app)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Scan Device Barcode / Serial
-              </label>
+              
+              {/* 🚀 DEMO HELPER: Inventory Button */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Device Barcode / Serial
+                </label>
+                <button type="button" onClick={() => setShowDemoModal(true)} style={{ fontSize: '0.75rem', color: 'var(--ucf-gold)', background: 'var(--ucf-black)', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center', fontWeight: 'bold' }}>
+                  <List size={14}/> Demo Inventory
+                </button>
+              </div>
+
               <input 
-                type="text" autoFocus required placeholder="e.g. SN-12345" 
+                type="text" required placeholder="e.g. SN-12345" 
                 value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)}
-                style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', fontFamily: 'monospace', borderRadius: '8px', border: '2px dashed var(--ucf-gold)', background: 'var(--bg-surface)', color: 'var(--text-main)', boxSizing: 'border-box', outline: 'none' }}
+                style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', fontFamily: 'monospace', borderRadius: '8px', border: `2px dashed ${actionType === 'return' ? 'var(--text-main)' : 'var(--ucf-gold)'}`, background: 'var(--bg-surface)', color: 'var(--text-main)', boxSizing: 'border-box', outline: 'none' }}
               />
             </div>
 
@@ -277,13 +330,48 @@ export default function CirculationDesk() {
               type="submit" 
               disabled={isProcessing || (actionType === 'checkout' && !selectedStudent)}
               className="btn-primary" 
-              style={{ padding: '1.25rem', fontSize: '1.1rem', marginTop: '1rem', background: actionType === 'return' ? 'var(--ucf-black)' : 'var(--ucf-gold)', color: actionType === 'return' ? 'var(--ucf-gold)' : 'var(--ucf-black)' }}
+              style={{ padding: '1.25rem', fontSize: '1.1rem', marginTop: '1rem', background: actionType === 'return' ? 'var(--ucf-black)' : 'var(--ucf-gold)', color: actionType === 'return' ? 'var(--ucf-gold)' : '#000' }}
             >
               {isProcessing ? "Processing..." : (actionType === 'checkout' ? "Complete Checkout" : "Log Condition & Return")}
             </button>
           </form>
+
         </div>
       </div>
+
+      {/* ======================= DEMO INVENTORY MODAL ======================= */}
+      {showDemoModal && (
+        <div className="modal-backdrop" onClick={() => setShowDemoModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0 }}>Available Inventory (Demo)</h2>
+              <button onClick={() => setShowDemoModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)' }}><X size={24} /></button>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+              Click an available item below to auto-fill its Serial Number for a walk-up checkout.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {allDevices.filter(d => d.isAvailable).map(d => (
+                <div 
+                  key={d._id}
+                  onClick={() => { setSerialNumber(d.serialNumber); setActionType('checkout'); setShowDemoModal(false); }}
+                  style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', background: 'var(--bg-app)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--ucf-gold)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                >
+                  <strong style={{ color: 'var(--text-main)' }}>{d.name}</strong>
+                  <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{d.serialNumber}</span>
+                </div>
+              ))}
+              {allDevices.filter(d => d.isAvailable).length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No items are currently in stock.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
