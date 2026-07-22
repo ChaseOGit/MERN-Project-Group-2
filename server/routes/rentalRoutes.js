@@ -7,6 +7,8 @@ const { requireAuth, requireVerifiedEmail } = require('../middleware/authMiddlew
 // Import the functions from the controller
 const { rentDevice, returnDevice, getMyLoans, filterItems, cancelReservation } = require('../controllers/rentalController');
 
+router.post('/cancel-reservation', requireAuth, requireVerifiedEmail, cancelReservation);
+
 //  Define the endpoints (Protected by the JWT security checks)
 
 /**

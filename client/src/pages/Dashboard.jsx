@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, Clock, CalendarClock, MapPin, AlertCircle, X, Info } from 'lucide-react';
+import { Package, Clock, CalendarClock, MapPin, AlertCircle, X, Info, XCircle } from 'lucide-react';
 import api from '../services/api';
 
 export default function Dashboard() {
@@ -44,7 +44,7 @@ export default function Dashboard() {
   const totalEstimatedFines = loans.reduce((total, loan) => {
     const now = new Date();
     const due = new Date(loan.DueDate);
-    if (now > due) {
+    if (loan.Status === 'active' && now > due) {
       const diffTime = Math.abs(now - due);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return total + (diffDays * (loan.ItemID?.overdueFeeRate || 15));
@@ -52,22 +52,28 @@ export default function Dashboard() {
     return total;
   }, 0);
 
-  // Time Remaining Helper Function
+  // 🚀 FIXED: Time Remaining Helper Function (Now includes accurate minutes!)
   const getTimeRemainingStr = (dueDate) => {
     const now = new Date();
     const due = new Date(dueDate);
-    const diffHours = Math.floor((due - now) / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
+    const diffMs = due - now;
 
-    if (now > due) {
-      const overdueDays = Math.ceil((now - due) / (1000 * 60 * 60 * 24));
+    if (diffMs <= 0) {
+      const overdueDays = Math.ceil(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
       return `${overdueDays} day(s) OVERDUE`;
     }
 
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+    const diffMinutes = Math.floor((diffMs / (1000 * 60)) % 60);
+
     if (diffDays > 0) {
-      return `${diffDays} day(s) and ${diffHours % 24} hour(s) left`;
+      return `${diffDays}d ${diffHours}h left`;
     }
-    return `${diffHours} hour(s) left`;
+    if (diffHours > 0) {
+      return `${diffHours}h ${diffMinutes}m left`;
+    }
+    return `${diffMinutes} minute(s) left`;
   };
 
   if (isLoading) {
@@ -91,7 +97,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* CONDITIONAL FEES DISPLAY */}
         {totalEstimatedFines > 0 && (
           <div style={{ background: 'var(--error-bg)', border: '1px solid var(--error-color)', padding: '1rem 1.5rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <AlertCircle size={32} color="var(--error-color)" />
@@ -125,53 +130,64 @@ export default function Dashboard() {
 
               return (
                 <article className="tech-card" key={loan._id}>
-                  {
-                    loan.Status === 'reserved' && (
-                      <div style={{ background: 'var(--ucf-gold)', color: '#000', textAlign: 'center', padding: '0.25rem', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                        RESERVED AWAITING PICKUP
-                      </div>
-                    )
-                  }
+                  
+                  {/* 🚀 FIXED: Beautifully centered Reserved Ribbon */}
+                  {loan.Status === 'reserved' && (
+                    <div style={{ background: 'var(--ucf-gold)', color: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '0.4rem', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+                      RESERVED AWAITING PICKUP
+                    </div>
+                  )}
 
                   <div className="card-image-wrapper" style={{ height: '140px' }}>
                     <img src={device?.image || 'https://via.placeholder.com/150'} alt={device?.name} className="card-image" />
                   </div>
+                  
                   <div className="card-content">
-                    <h3 className="card-title" style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>
+                    <h3 className="card-title" style={{ fontSize: '1.1rem', marginBottom: '0.25rem', textAlign: 'center' }}>
                       {device?.name || 'Unknown Device'}
                     </h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem', fontFamily: 'monospace' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem', fontFamily: 'monospace', textAlign: 'center' }}>
                       SN: {device?.serialNumber || 'N/A'}
                     </p>
                     
                     {loan.Status === 'reserved' ? (
                       <>
-                        <div className="status-indicator warning" style={{ marginBottom: '1rem', display: 'inline-flex', padding: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
+                        {/* 🚀 FIXED: Centered Time Remaining Badge */}
+                        <div className="status-indicator warning" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', padding: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
                           <Clock size={16} /> 
                           <span>Expires: {getTimeRemainingStr(loan.DueDate)}</span>
                         </div>
+                        
+                        {/* 🚀 FIXED: Added Try/Catch to the Cancel Button so it actually works! */}
                         <button 
                           onClick={async () => {
-                            if (window.confirm('Cancel this reservation?')) {
-                              await api.post('/rentals/cancel-reservation', { transactionId: loan._id });
-                              fetchData();
+                            if(window.confirm("Are you sure you want to cancel this reservation?")) {
+                              try {
+                                const res = await api.post('/rentals/cancel-reservation', { transactionId: loan._id });
+                                alert(res.data.message);
+                                fetchData(); // Instantly removes the card from the UI
+                              } catch (err) {
+                                alert(err.response?.data?.message || "Failed to cancel reservation.");
+                              }
                             }
                           }}
-                          className="btn-cancel" style={{ width: '100%' }}
+                          className="btn-cancel" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
                         >
-                          Cancel Reservation
+                          <XCircle size={18} /> Cancel Reservation
                         </button>
                       </>
                     ) : (
                       <>
-                        <div className={`status-indicator ${isOverdue ? 'error' : 'warning'}`} style={{ marginBottom: '1rem', display: 'inline-flex', padding: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
+                        {/* 🚀 FIXED: Centered Due Date Badge */}
+                        <div className={`status-indicator ${isOverdue ? 'error' : 'success'}`} style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', padding: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
                           <CalendarClock size={16} /> 
                           <span>{isOverdue ? 'OVERDUE: ' : 'Due: '} {dueDateStr}</span>
                         </div>
+                        
                         <button 
                           onClick={() => setReturnModalItem(loan)}
                           className="btn-nav-outline" 
-                          style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', color: 'var(--text-main)', borderColor: 'var(--text-main)' }}
+                          style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', color: 'var(--text-main)', borderColor: 'var(--text-main)' }}
                         >
                           <Info size={18} /> How to Return
                         </button>
