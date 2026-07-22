@@ -13,21 +13,29 @@ app.use(express.json());
 
 // Swagger Configuration (Fulfills your Swagger requirement)
 const swaggerOptions = {
-    swaggerDefinition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'MERN Group 2 API',
-            version: '1.0.0',
-            description: 'API documentation for our MERN project',
-        },
-        // Add the live production URL so Swagger knows where to send requests
-        servers: [
-            { url: 'https://cis4004chase.xyz', description: 'Live Production Server' },
-            { url: 'http://localhost:5000', description: 'Local Development Server' }
-        ],
+  swaggerDefinition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'MERN Group 2 API',
+      version: '1.0.0',
+      description: 'API documentation for our MERN project',
     },
-    // Tell Swagger to read the comments inside the routes folder
-    apis: ['./server.js', './routes/*.js'], 
+    servers: [
+      { url: 'https://cis4004chase.xyz', description: 'Live Production Server' },
+      { url: 'http://localhost:5000', description: 'Local Development Server' }
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Enter your JWT token from login'
+        }
+      }
+    },
+  },
+  apis: ['./server.js', './routes/*.js'],
 };
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDocs));
