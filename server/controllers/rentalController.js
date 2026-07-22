@@ -13,9 +13,22 @@ exports.rentDevice = async (req, res) => {
         // 1. STUDENT WEB RESERVATION FLOW (1 Hour Hold)
         // ==========================================
         if (!isFacultyOrAdmin) {
-            // Check if student already has a pending reservation
+            
             const existingRes = await Transactions.findOne({ UserID: targetUserId, Status: 'reserved' });
-            if (existingRes) return res.status(400).json({ message: "You already have a pending reservation. Limit 1 reservation at a time." });
+            if (existingRes) {
+                return res.status(400).json({ message: "You already have a pending reservation. Limit 1 reservation at a time." });
+            }
+
+            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            const recentCancel = await Transactions.findOne({
+                UserID: targetUserId,
+                Status: 'cancelled',
+                updatedAt: { $gt: oneDayAgo } // Checks if they cancelled anything in the last 24 hrs
+            });
+
+            if (recentCancel) {
+                return res.status(429).json({ message: "Anti-Hoarding Policy: You cancelled a reservation recently. You must wait 24 hours before making a new web reservation, or visit the Circulation Desk for a walk-up checkout." });
+            }
 
             const device = await Device.findById(deviceId);
             if (!device || !device.isAvailable) return res.status(400).json({ message: "Device is unavailable." });
@@ -51,7 +64,6 @@ exports.rentDevice = async (req, res) => {
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + loanDays);
 
-        // Check if the student previously reserved this exact device
         const existingRes = await Transactions.findOne({ ItemID: deviceId, Status: 'reserved' });
         
         if (existingRes) {
@@ -71,7 +83,7 @@ exports.rentDevice = async (req, res) => {
             return res.status(200).json({ message: `Reservation Confirmed! Officially checked out to ${user.name}.` });
         }
 
-        // NO RESERVATION: Walk-up Checkout
+        // WALK-UP CHECKOUT
         if (!device.isAvailable) return res.status(400).json({ message: "Device is currently checked out." });
 
         device.isAvailable = false;
@@ -131,32 +143,44 @@ exports.returnDevice = async (req, res) => {
         const { deviceId, conditionAtReturn } = req.body;
         const isFacultyOrAdmin = req.user.role === 'Admin' || req.user.role === 'Faculty';
         const activeTransaction = await Transactions.findOne({ ItemID: deviceId, Status: 'active' });
+        
         if (!activeTransaction) return res.status(404).json({ message: "No active rental found for this device." });
+        
         const actualRenterId = activeTransaction.UserID;
-        if (!isFacultyOrAdmin && req.user._id.toString() !== actualRenterId.toString()) return res.status(403).json({ message: "You cannot return a device you did not rent." });
+        if (!isFacultyOrAdmin && req.user._id.toString() !== actualRenterId.toString()) {
+            return res.status(403).json({ message: "You cannot return a device you did not rent." });
+        }
+        
         const device = await Device.findById(deviceId);
         if (!device) return res.status(404).json({ message: "Device not found in inventory." });
+        
         const now = new Date();
         const dailyFineRate = device.overdueFeeRate || 15; 
         let fine = 0;
+        
         if (now > activeTransaction.DueDate) {
             const diffTime = Math.abs(now - activeTransaction.DueDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             fine = diffDays * dailyFineRate;
         }
+        
         activeTransaction.FineAmount = fine;
         activeTransaction.Status = 'returned';
         activeTransaction.ReturnDate = now;
         activeTransaction.ConditionAtReturn = conditionAtReturn || 'Good'; 
         await activeTransaction.save();
+        
         device.isAvailable = true;
         device.currentRenter = null;
         const currentLog = device.rentalHistory.find(history => history.userId.toString() === actualRenterId.toString() && !history.returnedAt);
         if (currentLog) currentLog.returnedAt = now;
         await device.save();
+        
         await User.findByIdAndUpdate(actualRenterId, { $pull: { activeRentals: deviceId } });
+        
         const user = await User.findById(actualRenterId);
         if (user) await sendReturnEmail({ to: user.email, name: user.name, deviceName: device.name });
+        
         res.status(200).json({ message: `Device successfully returned. Condition logged: ${conditionAtReturn || 'Good'}.`, fineApplied: fine, device });
     } catch (error) {
         res.status(500).json({ message: "Backend return process error", error: error.message });
