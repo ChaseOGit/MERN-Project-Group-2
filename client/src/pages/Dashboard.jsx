@@ -52,7 +52,7 @@ export default function Dashboard() {
     return total;
   }, 0);
 
-  // 🚀 FIXED: Time Remaining Helper Function (Now includes accurate minutes!)
+  // Time Remaining Helper Function
   const getTimeRemainingStr = (dueDate) => {
     const now = new Date();
     const due = new Date(dueDate);
@@ -87,19 +87,19 @@ export default function Dashboard() {
   return (
     <main className="main-layout">
       
-      {/* HEADER SECTION */}
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* 🚀 FIXED HEADER SECTION: Centered gracefully using Flexbox column */}
+      <div style={{ marginBottom: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '1.25rem' }}>
         <div>
-          <h1 style={{ marginBottom: '0.5rem' }}>Welcome, {user.name}!</h1>
-          <p style={{ color: 'var(--text-muted)', margin: 0 }}>Student Email: {user.email}</p>
+          <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '2.2rem' }}>Welcome, {user.name}!</h1>
+          <p style={{ color: 'var(--text-muted)', margin: '0 0 0.25rem 0' }}>Student Email: {user.email}</p>
           {user.StudentIdNumber && (
-             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>UCF ID: {user.StudentIdNumber}</p>
+             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0, fontFamily: 'monospace' }}>UCF ID: {user.StudentIdNumber}</p>
           )}
         </div>
 
         {totalEstimatedFines > 0 && (
-          <div style={{ background: 'var(--error-bg)', border: '1px solid var(--error-color)', padding: '1rem 1.5rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <AlertCircle size={32} color="var(--error-color)" />
+          <div style={{ background: 'var(--error-bg)', border: '1px solid var(--error-color)', padding: '1rem 1.5rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', maxWidth: '400px', width: '100%', boxSizing: 'border-box' }}>
+            <AlertCircle size={32} color="var(--error-color)" style={{ flexShrink: 0 }} />
             <div>
               <span style={{ display: 'block', fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--error-color)' }}>Estimated Outstanding Fines</span>
               <strong style={{ fontSize: '1.5rem', color: 'var(--error-color)' }}>${totalEstimatedFines.toFixed(2)}</strong>
@@ -109,12 +109,12 @@ export default function Dashboard() {
       </div>
 
       <section>
-        <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.5rem' }}>
+        <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '1.5rem' }}>
           <Package size={24} /> My Active Rentals
         </h2>
         
         {loans.length === 0 ? (
-          <div className="tech-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div className="tech-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto' }}>
             <Package size={48} color="var(--border-color)" style={{ marginBottom: '1rem' }} />
             <h3>You do not currently have any devices checked out.</h3>
           </div>
@@ -131,7 +131,6 @@ export default function Dashboard() {
               return (
                 <article className="tech-card" key={loan._id}>
                   
-                  {/* 🚀 FIXED: Beautifully centered Reserved Ribbon */}
                   {loan.Status === 'reserved' && (
                     <div style={{ background: 'var(--ucf-gold)', color: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '0.4rem', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '0.5px' }}>
                       RESERVED AWAITING PICKUP
@@ -152,20 +151,18 @@ export default function Dashboard() {
                     
                     {loan.Status === 'reserved' ? (
                       <>
-                        {/* 🚀 FIXED: Centered Time Remaining Badge */}
                         <div className="status-indicator warning" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', padding: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
                           <Clock size={16} /> 
                           <span>Expires: {getTimeRemainingStr(loan.DueDate)}</span>
                         </div>
                         
-                        {/* 🚀 FIXED: Added Try/Catch to the Cancel Button so it actually works! */}
                         <button 
                           onClick={async () => {
                             if(window.confirm("Are you sure you want to cancel this reservation?")) {
                               try {
                                 const res = await api.post('/rentals/cancel-reservation', { transactionId: loan._id });
                                 alert(res.data.message);
-                                fetchData(); // Instantly removes the card from the UI
+                                fetchData(); 
                               } catch (err) {
                                 alert(err.response?.data?.message || "Failed to cancel reservation.");
                               }
@@ -178,7 +175,6 @@ export default function Dashboard() {
                       </>
                     ) : (
                       <>
-                        {/* 🚀 FIXED: Centered Due Date Badge */}
                         <div className={`status-indicator ${isOverdue ? 'error' : 'success'}`} style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', padding: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
                           <CalendarClock size={16} /> 
                           <span>{isOverdue ? 'OVERDUE: ' : 'Due: '} {dueDateStr}</span>
