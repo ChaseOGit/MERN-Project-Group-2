@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
   CheckCircle2, XCircle, MapPin, Clock, Search, ShieldAlert, 
-  RefreshCw, X, Laptop, Camera, Cable, Layers, Tablet, Headphones, Calculator, SlidersHorizontal, Info
+  RefreshCw, X, Laptop, Camera, Cable, Layers, Tablet, Headphones, Calculator, SlidersHorizontal, Info, Timer
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -9,6 +9,9 @@ export default function Home() {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Current User State (Used for Smart Badges and Dynamic Modals)
+  const [currentUser, setCurrentUser] = useState(null);
+
   // Basic Filters
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,7 +29,6 @@ export default function Home() {
 
   const fetchInventory = () => {
     setIsLoading(true);
-    // Inventory endpoint returns raw device rows; grouping happens client-side below.
     api.get('/devices')
       .then(response => {
         setItems(response.data.data || []);
@@ -39,9 +41,13 @@ export default function Home() {
       });
   };
 
-  useEffect(() => { fetchInventory(); }, []);
+  useEffect(() => { 
+    // Grab the logged in user to customize the UI experience
+    const user = JSON.parse(localStorage.getItem('user'));
+    setCurrentUser(user);
+    fetchInventory(); 
+  }, []);
 
-  // Sleek Category Icons
   const getCategoryIcon = (category) => {
     if (category === "Laptops") return <Laptop size={18} />;
     if (category === "Tablets") return <Tablet size={18} />;
@@ -84,7 +90,7 @@ export default function Home() {
 
   const displayItems = Object.values(groupedItems);
 
-  // DYNAMIC FILTER GENERATION (Scans database to create dropdown options)
+  // DYNAMIC FILTER GENERATION
   const availableLoanPeriods = useMemo(() => {
     return [...new Set(displayItems.map(item => item.loanPeriod))].sort();
   }, [displayItems]);
@@ -93,7 +99,7 @@ export default function Home() {
     return [...new Set(displayItems.map(item => item.restrictedTo))].sort();
   }, [displayItems]);
 
-  // FILTERING LOGIC (Applies Basic + Advanced Filters)
+  // FILTERING LOGIC
   const filteredItems = displayItems.filter(item => {
     const matchesCategory = activeCategory === "All" || item.category === activeCategory;
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -106,13 +112,12 @@ export default function Home() {
 
   // Check Out Logic
   const handleConfirmReserve = async () => {
-    const storedUser = JSON.parse(localStorage.getItem('user'));
     const token = localStorage.getItem('token');
-    if (!storedUser) return alert("Please log in to reserve a device!");
+    if (!currentUser) return alert("Please log in to reserve a device!");
     if (!token) return alert("Please log in again to continue.");
 
     if (selectedItem.restrictedTo !== 'All') {
-      const userRole = storedUser.role.toLowerCase();
+      const userRole = currentUser.role.toLowerCase();
       const itemRole = selectedItem.restrictedTo.toLowerCase();
       if (userRole !== itemRole && userRole !== 'admin') {
         return alert(`Access Denied: This item is restricted to ${selectedItem.restrictedTo}s only.`);
@@ -121,7 +126,6 @@ export default function Home() {
 
     try {
       setIsProcessing(true);
-      // If no location is selected, reserve from first location with available stock.
       let deviceIdToCheckout = selectedLocation === "All Locations" 
         ? Object.values(selectedItem.locations).find(l => l.availableCount > 0).availableIds[0]
         : selectedItem.locations[selectedLocation].availableIds[0];
@@ -138,6 +142,9 @@ export default function Home() {
     }
   };
 
+  // Helper variables for UI
+  const isStaff = currentUser?.role === 'Admin' || currentUser?.role === 'Faculty';
+
   return (
     <main className="main-layout">
       {/* --- TOP CONTROLS BAR --- */}
@@ -150,7 +157,7 @@ export default function Home() {
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
-            aria-label="Search inventory" /* FIXED: Added ARIA label for screen readers */
+            aria-label="Search inventory" 
           />
           {searchTerm && (
             <button onClick={() => setSearchTerm("")} className="clear-search-btn" aria-label="Clear search"><X size={18} /></button>
@@ -162,7 +169,7 @@ export default function Home() {
             value={selectedLocation} 
             onChange={(e) => setSelectedLocation(e.target.value)} 
             className="location-select"
-            aria-label="Filter by location" /* FIXED: Added ARIA label for screen readers */
+            aria-label="Filter by location"
           >
             <option value="All Locations">🌍 All Locations</option>
             <option value="John C. Hitt Library">📚 John C. Hitt Library</option>
@@ -170,7 +177,6 @@ export default function Home() {
             <option value="Rosen College">🏨 Rosen College</option>
           </select>
           
-          {/* ADVANCED FILTERS TOGGLE */}
           <button 
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)} 
             className="refresh-btn"
@@ -187,7 +193,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- ADVANCED FILTERS TRAY (Smooth Dropdown) --- */}
+      {/* --- ADVANCED FILTERS TRAY --- */}
       {showAdvancedFilters && (
         <section style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', padding: '1rem', backgroundColor: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
           
@@ -223,7 +229,6 @@ export default function Home() {
       {/* --- UNIFIED CATEGORY PILLS --- */}
       <section>
         <div className="category-group" role="group" aria-label="Filter by category">
-          {/* Catagories */}
           {["All", "Laptops", "Tablets", "Cameras", "Audio & Video", "Calculators", "Accessories"].map(cat => (
             <button key={cat} className={`filter-btn ${activeCategory === cat ? "active" : ""}`} onClick={() => setActiveCategory(cat)}>
               {getCategoryIcon(cat)} {cat}
@@ -249,6 +254,10 @@ export default function Home() {
               const primaryTotalCount = selectedLocation === "All Locations" ? item.totalOverall : (item.locations[selectedLocation]?.totalCount || 0);
               const otherAvailableLocations = Object.entries(item.locations).filter(([loc, stock]) => loc !== selectedLocation && stock.availableCount > 0);
 
+              // 🚀 SMART RESTRICTION BADGE LOGIC
+              const isRestricted = item.restrictedTo && item.restrictedTo !== "All";
+              const userHasAccess = currentUser?.role === 'Admin' || currentUser?.role === item.restrictedTo;
+
               return (
                 <article 
                   className="tech-card" key={item.name} 
@@ -263,9 +272,15 @@ export default function Home() {
                   <div className="card-content" style={{ paddingBottom: '1rem' }}>
                     <h3 className="card-title" style={{ marginBottom: '0.5rem' }}>{item.name}</h3>
 
-                    {(item.restrictedTo && item.restrictedTo !== "All") && (
-                      <div className="restriction-badge">
-                        <ShieldAlert size={14} /> {item.restrictedTo} Only
+                    {/* 🚀 SMART BADGES: Shows Green for eligible Faculty, Red for ineligible Students */}
+                    {isRestricted && (
+                      <div className="restriction-badge" style={{
+                        background: userHasAccess ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: userHasAccess ? '#10B981' : '#EF4444',
+                        borderColor: userHasAccess ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'
+                      }}>
+                        {userHasAccess ? <CheckCircle2 size={14} /> : <ShieldAlert size={14} />} 
+                        {item.restrictedTo} Only {userHasAccess && "(Eligible)"}
                       </div>
                     )}
 
@@ -286,7 +301,7 @@ export default function Home() {
         </section>
       )}
 
-      {/* --- QUICK VIEW / CHECKOUT MODAL --- */}
+      {/* --- DYNAMIC QUICK VIEW / CHECKOUT MODAL --- */}
       {selectedItem && (
         <div className="modal-backdrop" onClick={() => setSelectedItem(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '0', overflow: 'hidden' }} role="dialog" aria-labelledby="modal-title" aria-modal="true">
@@ -308,8 +323,11 @@ export default function Home() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}><MapPin size={16} className="meta-icon"/> {selectedLocation === "All Locations" ? Object.keys(selectedItem.locations).find(l => selectedItem.locations[l].availableCount > 0) || "Check Locations" : selectedLocation}</div>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Loan Period</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}><Clock size={16} className="meta-icon"/> {selectedItem.loanPeriod}</div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>{isStaff ? "Loan Period" : "Reservation Hold"}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                    {isStaff ? <Clock size={16} className="meta-icon"/> : <Timer size={16} className="meta-icon" style={{ color: 'var(--ucf-gold)' }}/>} 
+                    {isStaff ? selectedItem.loanPeriod : "1 Hour Limit"}
+                  </div>
                 </div>
                 <div>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>Restriction</span>
@@ -330,10 +348,17 @@ export default function Home() {
                 <>
                   <label className="modal-checkbox-label">
                     <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
-                    <span>I agree to return this item on time to the specified location and accept financial responsibility for any damages.</span>
+                    {/*  Explains 1-Hour hold for students, but Direct Checkout for Staff */}
+                    {isStaff ? (
+                      <span>I agree to accept responsibility for this device and return it by the due date.</span>
+                    ) : (
+                      <span>I agree to pick up this item from the Circulation Desk within <strong>1 hour</strong>, or my reservation will be automatically cancelled.</span>
+                    )}
                   </label>
-                  <button onClick={handleConfirmReserve} disabled={!acceptedTerms || isProcessing} className="btn-primary" style={{ width: '100%', padding: '1rem' }}>
-                    {isProcessing ? "Processing Reservation..." : "Confirm Reservation"}
+
+                  <button onClick={handleConfirmReserve} disabled={!acceptedTerms || isProcessing} className="btn-primary" style={{ width: '100%', padding: '1rem', display: 'flex', gap: '8px' }}>
+                    {/* DYNAMIC BUTTON TEXT */}
+                    {isProcessing ? "Processing..." : (isStaff ? "Complete Checkout" : <><Timer size={20}/> Reserve (1-Hour Hold)</>)}
                   </button>
                 </>
               ) : (

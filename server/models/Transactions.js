@@ -22,15 +22,20 @@ const transactionSchema = new mongoose.Schema({
     },
     Status: {
       type: String,
-      enum: ['active', 'returned', 'overdue'],
+      enum: ['reserved', 'active', 'returned', 'overdue', 'cancelled'],
       default: 'active'
     },
     FineAmount: {
       type: Number,
       default: 0
     },
-    ConditionAtCheckout: { type: String, required: true },
-    ConditionAtReturn: { type: String }
+    ConditionAtCheckout: { 
+      type: String, 
+      required: true 
+    },
+    ConditionAtReturn: { 
+      type: String 
+    }
   }, { timestamps: true });
   
   module.exports = mongoose.model('Transaction', transactionSchema);

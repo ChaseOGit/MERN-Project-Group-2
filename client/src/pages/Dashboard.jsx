@@ -125,6 +125,14 @@ export default function Dashboard() {
 
               return (
                 <article className="tech-card" key={loan._id}>
+                  {
+                    loan.Status === 'reserved' && (
+                      <div style={{ background: 'var(--ucf-gold)', color: '#000', textAlign: 'center', padding: '0.25rem', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                        RESERVED AWAITING PICKUP
+                      </div>
+                    )
+                  }
+
                   <div className="card-image-wrapper" style={{ height: '140px' }}>
                     <img src={device?.image || 'https://via.placeholder.com/150'} alt={device?.name} className="card-image" />
                   </div>
@@ -136,19 +144,39 @@ export default function Dashboard() {
                       SN: {device?.serialNumber || 'N/A'}
                     </p>
                     
-                    <div className={`status-indicator ${isOverdue ? 'error' : 'warning'}`} style={{ marginBottom: '1rem', display: 'inline-flex', padding: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
-                      <CalendarClock size={16} /> 
-                      <span>{isOverdue ? 'OVERDUE: ' : 'Due: '} {dueDateStr}</span>
-                    </div>
-
-                    {/**/}
-                    <button 
-                      onClick={() => setReturnModalItem(loan)}
-                      className="btn-nav-outline" 
-                      style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', color: 'var(--text-main)', borderColor: 'var(--text-main)' }}
-                    >
-                      <Info size={18} /> How to Return
-                    </button>
+                    {loan.Status === 'reserved' ? (
+                      <>
+                        <div className="status-indicator warning" style={{ marginBottom: '1rem', display: 'inline-flex', padding: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
+                          <Clock size={16} /> 
+                          <span>Expires: {getTimeRemainingStr(loan.DueDate)}</span>
+                        </div>
+                        <button 
+                          onClick={async () => {
+                            if (window.confirm('Cancel this reservation?')) {
+                              await api.post('/rentals/cancel-reservation', { transactionId: loan._id });
+                              fetchData();
+                            }
+                          }}
+                          className="btn-cancel" style={{ width: '100%' }}
+                        >
+                          Cancel Reservation
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className={`status-indicator ${isOverdue ? 'error' : 'warning'}`} style={{ marginBottom: '1rem', display: 'inline-flex', padding: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
+                          <CalendarClock size={16} /> 
+                          <span>{isOverdue ? 'OVERDUE: ' : 'Due: '} {dueDateStr}</span>
+                        </div>
+                        <button 
+                          onClick={() => setReturnModalItem(loan)}
+                          className="btn-nav-outline" 
+                          style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', color: 'var(--text-main)', borderColor: 'var(--text-main)' }}
+                        >
+                          <Info size={18} /> How to Return
+                        </button>
+                      </>
+                    )}
                   </div>
                 </article>
               )
