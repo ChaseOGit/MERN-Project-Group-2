@@ -19,8 +19,13 @@ export default function Navbar({ theme, toggleTheme }) {
   return (
     <nav className="navbar">
       <div className="nav-container">
-        <Link to="/" className="nav-brand" style={{ textDecoration: 'none' }}>
-          <span className="brand-highlight">UCF</span><span className="brand-text">Tech Lending</span>
+        {/*  */}
+        <Link to="/" className="nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+          <img src="/logo.svg" alt="UCF Tech Lending Logo" style={{ width: '36px', height: '36px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+          <div>
+            <span className="brand-highlight">UCF</span>
+            <span className="brand-text">Tech Lending</span>
+          </div>
         </Link>
         
         <div className="nav-actions">
