@@ -48,6 +48,17 @@ export default function Home() {
     fetchInventory(); 
   }, []);
 
+  // Keyboard accessibility: Close modal on 'Escape' key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && selectedItem) {
+        setSelectedItem(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedItem]);
+
   const getCategoryIcon = (category) => {
     if (category === "Laptops") return <Laptop size={18} />;
     if (category === "Tablets") return <Tablet size={18} />;
@@ -183,6 +194,7 @@ export default function Home() {
             style={{ backgroundColor: showAdvancedFilters ? 'var(--ucf-black)' : 'var(--bg-surface)', color: showAdvancedFilters ? 'var(--ucf-gold)' : 'var(--text-main)' }}
             title="Advanced Filters"
             aria-label="Toggle Advanced Filters"
+            aria-expanded={showAdvancedFilters}
           >
             <SlidersHorizontal size={20} />
           </button>
@@ -254,15 +266,31 @@ export default function Home() {
               const primaryTotalCount = selectedLocation === "All Locations" ? item.totalOverall : (item.locations[selectedLocation]?.totalCount || 0);
               const otherAvailableLocations = Object.entries(item.locations).filter(([loc, stock]) => loc !== selectedLocation && stock.availableCount > 0);
 
-              // 🚀 SMART RESTRICTION BADGE LOGIC
+              // SMART RESTRICTION BADGE LOGIC
               const isRestricted = item.restrictedTo && item.restrictedTo !== "All";
               const userHasAccess = currentUser?.role === 'Admin' || currentUser?.role === item.restrictedTo;
 
+              const handleOpenModal = () => {
+                setSelectedItem(item);
+                setAcceptedTerms(false);
+              };
+
               return (
                 <article 
-                  className="tech-card" key={item.name} 
-                  onClick={() => { setSelectedItem(item); setAcceptedTerms(false); }}
-                  style={{ cursor: 'pointer' }} title="Click to view details"
+                  className="tech-card" 
+                  key={item.name} 
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`View details for ${item.name}`}
+                  onClick={handleOpenModal}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleOpenModal();
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }} 
+                  title="Click to view details"
                 >
                   <div className="card-image-wrapper">
                     <img src={item.image} alt={item.name} className="card-image" />
@@ -272,12 +300,12 @@ export default function Home() {
                   <div className="card-content" style={{ paddingBottom: '1rem' }}>
                     <h3 className="card-title" style={{ marginBottom: '0.5rem' }}>{item.name}</h3>
 
-                    {/* 🚀 SMART BADGES: Shows Green for eligible Faculty, Red for ineligible Students */}
+                    {/* High-Contrast Dynamic Restriction Badge */}
                     {isRestricted && (
                       <div className="restriction-badge" style={{
-                        background: userHasAccess ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                        color: userHasAccess ? '#10B981' : '#EF4444',
-                        borderColor: userHasAccess ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'
+                        background: userHasAccess ? 'var(--success-bg)' : 'var(--error-bg)',
+                        color: userHasAccess ? 'var(--success-color)' : 'var(--error-color)',
+                        borderColor: userHasAccess ? 'var(--success-color)' : 'var(--error-color)'
                       }}>
                         {userHasAccess ? <CheckCircle2 size={14} /> : <ShieldAlert size={14} />} 
                         {item.restrictedTo} Only {userHasAccess && "(Eligible)"}
@@ -348,7 +376,6 @@ export default function Home() {
                 <>
                   <label className="modal-checkbox-label">
                     <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
-                    {/*  Explains 1-Hour hold for students, but Direct Checkout for Staff */}
                     {isStaff ? (
                       <span>I agree to accept responsibility for this device and return it by the due date.</span>
                     ) : (
@@ -357,7 +384,6 @@ export default function Home() {
                   </label>
 
                   <button onClick={handleConfirmReserve} disabled={!acceptedTerms || isProcessing} className="btn-primary" style={{ width: '100%', padding: '1rem', display: 'flex', gap: '8px' }}>
-                    {/* DYNAMIC BUTTON TEXT */}
                     {isProcessing ? "Processing..." : (isStaff ? "Complete Checkout" : <><Timer size={20}/> Reserve (1-Hour Hold)</>)}
                   </button>
                 </>
