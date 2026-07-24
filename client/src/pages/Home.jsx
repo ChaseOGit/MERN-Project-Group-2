@@ -107,7 +107,9 @@ export default function Home() {
   }, [displayItems]);
 
   const availableRoles = useMemo(() => {
-    return [...new Set(displayItems.map(item => item.restrictedTo))].sort();
+    const roles = new Set(displayItems.map(item => item.restrictedTo || 'All'));
+    roles.delete('All');
+    return [...roles].sort();
   }, [displayItems]);
 
   // FILTERING LOGIC

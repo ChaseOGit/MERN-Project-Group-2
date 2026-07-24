@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { 
-  ShieldAlert, Wand2, Plus, Package, List, Edit, Trash2, X, PackagePlus, ScanLine, Camera, UploadCloud 
+  ShieldAlert, Wand2, Plus, Package, List, Edit, Trash2, X, PackagePlus, ScanLine, Camera, UploadCloud, Search 
 } from 'lucide-react';
 import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
 import api from '../services/api';
@@ -20,6 +20,7 @@ export default function AdminDashboard() {
   });
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [inventorySearch, setInventorySearch] = useState('');
 
   // BARCODE SCANNER STATE
   const [showScannerModal, setShowScannerModal] = useState(false);
@@ -380,7 +381,19 @@ export default function AdminDashboard() {
       {/* ======================= MANAGE INVENTORY TAB ======================= */}
       {activeTab === 'manage' && (
         <section className="tech-card" style={{ padding: '2rem', overflowX: 'auto' }}>
-          <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Current Library Inventory</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <h2 style={{ margin: 0 }}>Current Library Inventory</h2>
+            <div style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
+              <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="Search by Name or Serial..."
+                value={inventorySearch}
+                onChange={(e) => setInventorySearch(e.target.value)}
+                style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted)' }}>
@@ -392,15 +405,33 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {inventory.map(item => (
+              {inventory
+                .filter(item => 
+                  item.name.toLowerCase().includes(inventorySearch.toLowerCase()) || 
+                  item.serialNumber.toLowerCase().includes(inventorySearch.toLowerCase())
+                )
+                .map(item => (
                 <tr key={item._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td style={{ padding: '1rem', fontWeight: 600 }}>{item.name}</td>
                   <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{item.serialNumber}</td>
                   <td style={{ padding: '1rem' }}>{item.location}</td>
                   <td style={{ padding: '1rem' }}>
-                    <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: item.isAvailable ? 'var(--success-bg)' : 'var(--error-bg)', color: item.isAvailable ? 'var(--success-color)' : 'var(--error-color)' }}>
-                      {item.isAvailable ? "In Stock" : "Checked Out"}
-                    </span>
+                    {item.isAvailable ? (
+                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: 'var(--success-bg)', color: 'var(--success-color)' }}>
+                        In Stock
+                      </span>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                        <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: 'var(--error-bg)', color: 'var(--error-color)' }}>
+                          Checked Out
+                        </span>
+                        {item.currentRenter && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            To: {item.currentRenter.name}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: '1rem', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                     <button onClick={() => handleAddMoreStock(item)} title="Add More of this Item" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--success-color)', background: 'var(--success-bg)', color: 'var(--success-color)', cursor: 'pointer' }}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, UserCircle, Package, ArrowRightLeft, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Search, UserCircle, Package, ArrowRightLeft, AlertTriangle, CheckCircle, Clock, X, List } from 'lucide-react';
 import api from '../services/api';
 
 export default function CirculationDesk() {
@@ -15,6 +15,11 @@ export default function CirculationDesk() {
   const [serialNumber, setSerialNumber] = useState('');
   const [returnCondition, setReturnCondition] = useState('Good');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Demo Helpers
+  const [demoSearch, setDemoSearch] = useState('');
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [allDevices, setAllDevices] = useState([]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -23,6 +28,7 @@ export default function CirculationDesk() {
       window.location.href = '/';
     } else {
       setIsAuthorized(true);
+      api.get('/devices').then(res => setAllDevices(res.data.data)).catch(console.error);
     }
   }, []);
 
@@ -95,6 +101,8 @@ export default function CirculationDesk() {
 
       setSerialNumber('');
       if (selectedStudent) loadStudentProfile(selectedStudent.user._id); 
+      // Refresh demo inventory list
+      api.get('/devices').then(res => setAllDevices(res.data.data));
       
     } catch (error) {
       alert(error.response?.data?.message || "Transaction failed.");
@@ -119,7 +127,6 @@ export default function CirculationDesk() {
         {/* ================= LEFT PANEL: STUDENT LOOKUP ================= */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
-          {/* 🚀 THE Z-INDEX FIX: Added zIndex: 10 so this entire card stacks above the profile card! */}
           <div className="tech-card" style={{ padding: '1.5rem', overflow: 'visible', zIndex: 10, position: 'relative' }}>
             <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <UserCircle size={20} /> Lookup Student
@@ -201,12 +208,9 @@ export default function CirculationDesk() {
                     {selectedStudent.transactions.filter(t => t.Status === 'returned').slice(0, 5).map(t => (
                       <tr key={t._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                         <td style={{ padding: '0.75rem 0' }}>{t.ItemID?.name || 'Unknown Item'}</td>
-                        
-                        {/* 🚀 FIXED: "Invalid Date" bug. Fallback to updatedAt if ReturnDate is missing */}
                         <td style={{ padding: '0.75rem 0', color: 'var(--text-muted)' }}>
                           Returned: {t.ReturnDate ? new Date(t.ReturnDate).toLocaleDateString() : new Date(t.updatedAt).toLocaleDateString()}
                         </td>
-                        
                         <td style={{ padding: '0.75rem 0', textAlign: 'right' }}>
                            {t.FineAmount > 0 ? <span style={{ color: 'var(--error-color)', fontWeight: 'bold' }}>Fine: ${t.FineAmount}</span> : <span style={{ color: 'var(--success-color)' }}>On Time</span>}
                         </td>
@@ -226,7 +230,7 @@ export default function CirculationDesk() {
           <div style={{ display: 'flex', background: 'var(--bg-app)', padding: '0.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
             <button 
               onClick={() => setActionType('checkout')}
-              style={{ flex: 1, padding: '1rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', transition: '0.2s', background: actionType === 'checkout' ? 'var(--ucf-gold)' : 'transparent', color: actionType === 'checkout' ? 'var(--ucf-black)' : 'var(--text-muted)', boxShadow: actionType === 'checkout' ? 'var(--shadow-sm)' : 'none' }}
+              style={{ flex: 1, padding: '1rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', transition: '0.2s', background: actionType === 'checkout' ? 'var(--ucf-gold)' : 'transparent', color: actionType === 'checkout' ? '#000' : 'var(--text-muted)', boxShadow: actionType === 'checkout' ? 'var(--shadow-sm)' : 'none' }}
             >
               Check Out
             </button>
@@ -241,13 +245,21 @@ export default function CirculationDesk() {
           <form onSubmit={handleDeskAction} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             <div style={{ background: 'var(--bg-app)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Scan Device Barcode / Serial
-              </label>
+              
+              {/* 🚀 RESTORED: Demo Inventory Button */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Device Barcode / Serial
+                </label>
+                <button type="button" onClick={() => setShowDemoModal(true)} style={{ fontSize: '0.75rem', color: 'var(--ucf-gold)', background: 'var(--ucf-black)', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center', fontWeight: 'bold' }}>
+                  <List size={14}/> Demo Inventory
+                </button>
+              </div>
+
               <input 
                 type="text" autoFocus required placeholder="e.g. SN-12345" 
                 value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)}
-                style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', fontFamily: 'monospace', borderRadius: '8px', border: '2px dashed var(--ucf-gold)', background: 'var(--bg-surface)', color: 'var(--text-main)', boxSizing: 'border-box', outline: 'none' }}
+                style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', fontFamily: 'monospace', borderRadius: '8px', border: `2px dashed ${actionType === 'return' ? 'var(--text-main)' : 'var(--ucf-gold)'}`, background: 'var(--bg-surface)', color: 'var(--text-main)', boxSizing: 'border-box', outline: 'none' }}
               />
             </div>
 
@@ -285,6 +297,66 @@ export default function CirculationDesk() {
           </form>
         </div>
       </div>
+
+      {/* ======================= RESTORED: DEMO INVENTORY MODAL ======================= */}
+      {showDemoModal && (
+        <div className="modal-backdrop" onClick={() => setShowDemoModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '550px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0 }}>Library Inventory (Demo Mode)</h2>
+              <button onClick={() => setShowDemoModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)' }}><X size={24} /></button>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+              Click an item below to auto-fill its Serial Number. <br/>
+              <span style={{ color: 'var(--success-color)' }}>Available</span> items will prepare a Checkout. <br/>
+              <span style={{ color: 'var(--error-color)' }}>Checked Out</span> items will prepare a Return.
+            </p>
+
+            <div style={{ marginBottom: '1rem', position: 'relative' }}>
+              <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                type="text" placeholder="Search by Name or Serial Number..." 
+                value={demoSearch} onChange={(e) => setDemoSearch(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
+              {allDevices
+                .filter(d => d.name.toLowerCase().includes(demoSearch.toLowerCase()) || d.serialNumber.toLowerCase().includes(demoSearch.toLowerCase()))
+                .map(d => (
+                <div 
+                  key={d._id}
+                  onClick={() => { 
+                    setSerialNumber(d.serialNumber); 
+                    setActionType(d.isAvailable ? 'checkout' : 'return'); 
+                    setShowDemoModal(false); 
+                    setDemoSearch('');
+                  }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', background: 'var(--bg-app)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--ucf-gold)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                >
+                  <div>
+                    <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '0.25rem' }}>{d.name}</strong>
+                    <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', backgroundColor: d.isAvailable ? 'var(--success-bg)' : 'var(--error-bg)', color: d.isAvailable ? 'var(--success-color)' : 'var(--error-color)' }}>
+                      {d.isAvailable ? 'In Stock' : 'Checked Out'}
+                    </span>
+                  </div>
+                  <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{d.serialNumber}</span>
+                </div>
+              ))}
+              
+              {allDevices.filter(d => d.name.toLowerCase().includes(demoSearch.toLowerCase()) || d.serialNumber.toLowerCase().includes(demoSearch.toLowerCase())).length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No items match your search.</div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }

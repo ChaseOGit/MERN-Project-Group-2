@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
         if (req.query.location) filters.location = req.query.location;
         if (req.query.category) filters.category = req.query.category;
 
-        const devices = await Device.find(filters);
+        const devices = await Device.find(filters).populate('currentRenter', 'name email StudentIdNumber');
         res.json({ success: true, data: devices });
     } catch (error) {
         res.status(500).json({ success: false, message: "Server Error" });
