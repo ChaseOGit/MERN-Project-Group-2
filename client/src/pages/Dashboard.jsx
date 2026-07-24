@@ -139,7 +139,7 @@ export default function Dashboard() {
 
                   <div className="card-image-wrapper" style={{ height: '140px' }}>
                     <img 
-                      src={device?.image ? (device.image.includes('unsplash.com') && !device.image.includes('w=') ? device.image + (device.image.includes('?') ? '&w=600&q=75&auto=format' : '?w=600&q=75&auto=format') : (device.image.includes('pexels.com') && !device.image.includes('w=') ? device.image + (device.image.includes('?') ? '&w=600' : '?w=600') : device?.image)) : 'https://via.placeholder.com/150'} 
+                      src={device?.image ? (device.image.includes('unsplash.com') ? device.image.replace(/w=\d+/, 'w=400') + (device.image.includes('w=') ? '' : (device.image.includes('?') ? '&w=400&q=75&auto=format' : '?w=400&q=75&auto=format')) : (device.image.includes('pexels.com') ? device.image.replace(/w=\d+/, 'w=400') + (device.image.includes('w=') ? '' : (device.image.includes('?') ? '&w=400' : '?w=400')) : (device.image.includes('media-amazon.com') ? device.image.replace(/_SL\d+_/, '_SL400_') : device?.image))) : 'https://via.placeholder.com/150'} 
                       alt={device?.name} 
                       className="card-image" 
                       loading="lazy" 
@@ -214,7 +214,7 @@ export default function Dashboard() {
 
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
               <img 
-                src={returnModalItem.ItemID?.image ? (returnModalItem.ItemID.image.includes('unsplash.com') && !returnModalItem.ItemID.image.includes('w=') ? returnModalItem.ItemID.image + (returnModalItem.ItemID.image.includes('?') ? '&w=600&q=75&auto=format' : '?w=600&q=75&auto=format') : (returnModalItem.ItemID.image.includes('pexels.com') && !returnModalItem.ItemID.image.includes('w=') ? returnModalItem.ItemID.image + (returnModalItem.ItemID.image.includes('?') ? '&w=600' : '?w=600') : returnModalItem.ItemID.image)) : 'https://via.placeholder.com/150'} 
+                src={returnModalItem.ItemID?.image ? (returnModalItem.ItemID.image.includes('unsplash.com') ? returnModalItem.ItemID.image.replace(/w=\d+/, 'w=400') + (returnModalItem.ItemID.image.includes('w=') ? '' : (returnModalItem.ItemID.image.includes('?') ? '&w=400&q=75&auto=format' : '?w=400&q=75&auto=format')) : (returnModalItem.ItemID.image.includes('pexels.com') ? returnModalItem.ItemID.image.replace(/w=\d+/, 'w=400') + (returnModalItem.ItemID.image.includes('w=') ? '' : (returnModalItem.ItemID.image.includes('?') ? '&w=400' : '?w=400')) : (returnModalItem.ItemID.image.includes('media-amazon.com') ? returnModalItem.ItemID.image.replace(/_SL\d+_/, '_SL400_') : returnModalItem.ItemID.image))) : 'https://via.placeholder.com/150'} 
                 alt="Device" 
                 style={{ height: '100px', objectFit: 'contain', marginBottom: '1rem' }} 
                 loading="lazy" 

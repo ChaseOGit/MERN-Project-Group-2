@@ -280,10 +280,23 @@ export default function Home() {
               // Optimize image URLs for known providers
               let optimizedImage = item.image;
               if (optimizedImage && typeof optimizedImage === 'string') {
-                if (optimizedImage.includes('unsplash.com') && !optimizedImage.includes('w=')) {
-                  optimizedImage += optimizedImage.includes('?') ? '&w=600&q=75&auto=format' : '?w=600&q=75&auto=format';
-                } else if (optimizedImage.includes('pexels.com') && !optimizedImage.includes('w=')) {
-                  optimizedImage += optimizedImage.includes('?') ? '&w=600' : '?w=600';
+                if (optimizedImage.includes('unsplash.com')) {
+                  // Replace any existing w=... parameter, or append if missing
+                  if (optimizedImage.includes('w=')) {
+                    optimizedImage = optimizedImage.replace(/w=\d+/, 'w=400');
+                  } else {
+                    optimizedImage += optimizedImage.includes('?') ? '&w=400&q=75&auto=format' : '?w=400&q=75&auto=format';
+                  }
+                } else if (optimizedImage.includes('pexels.com')) {
+                  if (optimizedImage.includes('w=')) {
+                    optimizedImage = optimizedImage.replace(/w=\d+/, 'w=400');
+                  } else {
+                    optimizedImage += optimizedImage.includes('?') ? '&w=400' : '?w=400';
+                  }
+                } else if (optimizedImage.includes('media-amazon.com')) {
+                  // Amazon image URLs have a scaling parameter like _AC_SL1500_
+                  // We can replace SL1500 or any SLXXX with SL400
+                  optimizedImage = optimizedImage.replace(/_SL\d+_/, '_SL400_');
                 }
               }
 
