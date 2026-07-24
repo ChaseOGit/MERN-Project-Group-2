@@ -139,7 +139,7 @@ export default function Dashboard() {
 
                   <div className="card-image-wrapper" style={{ height: '140px' }}>
                     <img 
-                      src={device?.image ? (device.image.includes('unsplash.com') && !device.image.includes('w=') ? device.image + (device.image.includes('?') ? '&w=600&q=75&auto=format' : '?w=600&q=75&auto=format') : device?.image) : 'https://via.placeholder.com/150'} 
+                      src={device?.image ? (device.image.includes('unsplash.com') && !device.image.includes('w=') ? device.image + (device.image.includes('?') ? '&w=600&q=75&auto=format' : '?w=600&q=75&auto=format') : (device.image.includes('pexels.com') && !device.image.includes('w=') ? device.image + (device.image.includes('?') ? '&w=600' : '?w=600') : device?.image)) : 'https://via.placeholder.com/150'} 
                       alt={device?.name} 
                       className="card-image" 
                       loading="lazy" 
@@ -213,7 +213,12 @@ export default function Dashboard() {
             </div>
 
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <img src={returnModalItem.ItemID?.image} alt="Device" style={{ height: '100px', objectFit: 'contain', marginBottom: '1rem' }} loading="lazy" />
+              <img 
+                src={returnModalItem.ItemID?.image ? (returnModalItem.ItemID.image.includes('unsplash.com') && !returnModalItem.ItemID.image.includes('w=') ? returnModalItem.ItemID.image + (returnModalItem.ItemID.image.includes('?') ? '&w=600&q=75&auto=format' : '?w=600&q=75&auto=format') : (returnModalItem.ItemID.image.includes('pexels.com') && !returnModalItem.ItemID.image.includes('w=') ? returnModalItem.ItemID.image + (returnModalItem.ItemID.image.includes('?') ? '&w=600' : '?w=600') : returnModalItem.ItemID.image)) : 'https://via.placeholder.com/150'} 
+                alt="Device" 
+                style={{ height: '100px', objectFit: 'contain', marginBottom: '1rem' }} 
+                loading="lazy" 
+              />
               <h3 style={{ margin: '0 0 0.5rem 0' }}>{returnModalItem.ItemID?.name}</h3>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>SN: {returnModalItem.ItemID?.serialNumber}</span>
             </div>
