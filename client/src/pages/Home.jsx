@@ -263,7 +263,7 @@ export default function Home() {
               <p style={{ color: "var(--text-muted)", margin: 0 }}>Try clearing some filters or selecting a different location.</p>
             </div>
           ) : (
-            filteredItems.map(item => {
+            filteredItems.map((item, index) => {
               const primaryAvailableCount = selectedLocation === "All Locations" ? item.availableOverall : (item.locations[selectedLocation]?.availableCount || 0);
               const primaryTotalCount = selectedLocation === "All Locations" ? item.totalOverall : (item.locations[selectedLocation]?.totalCount || 0);
               const otherAvailableLocations = Object.entries(item.locations).filter(([loc, stock]) => loc !== selectedLocation && stock.availableCount > 0);
@@ -276,6 +276,16 @@ export default function Home() {
                 setSelectedItem(item);
                 setAcceptedTerms(false);
               };
+
+              // Optimize image URLs for known providers
+              let optimizedImage = item.image;
+              if (optimizedImage && typeof optimizedImage === 'string') {
+                if (optimizedImage.includes('unsplash.com') && !optimizedImage.includes('w=')) {
+                  optimizedImage += optimizedImage.includes('?') ? '&w=600&q=75&auto=format' : '?w=600&q=75&auto=format';
+                } else if (optimizedImage.includes('pexels.com') && !optimizedImage.includes('w=')) {
+                  optimizedImage += optimizedImage.includes('?') ? '&w=600' : '?w=600';
+                }
+              }
 
               return (
                 <article 
@@ -295,7 +305,13 @@ export default function Home() {
                   title="Click to view details"
                 >
                   <div className="card-image-wrapper">
-                    <img src={item.image} alt={item.name} className="card-image" />
+                    <img 
+                      src={optimizedImage} 
+                      alt={item.name} 
+                      className="card-image" 
+                      loading={index < 4 ? "eager" : "lazy"} 
+                      fetchpriority={index === 0 ? "high" : "auto"}
+                    />
                     <span className="category-badge">{item.category}</span>
                   </div>
 
@@ -340,7 +356,12 @@ export default function Home() {
               <button onClick={() => setSelectedItem(null)} aria-label="Close modal" style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}>
                 <X size={20} />
               </button>
-              <img src={selectedItem.image} alt={selectedItem.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', padding: '1rem' }} />
+              <img 
+                src={selectedItem.image} 
+                alt={selectedItem.name} 
+                style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', padding: '1rem' }} 
+                loading="lazy"
+              />
             </div>
 
             <div style={{ padding: '2rem' }}>

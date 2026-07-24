@@ -138,7 +138,12 @@ export default function Dashboard() {
                   )}
 
                   <div className="card-image-wrapper" style={{ height: '140px' }}>
-                    <img src={device?.image || 'https://via.placeholder.com/150'} alt={device?.name} className="card-image" />
+                    <img 
+                      src={device?.image ? (device.image.includes('unsplash.com') && !device.image.includes('w=') ? device.image + (device.image.includes('?') ? '&w=600&q=75&auto=format' : '?w=600&q=75&auto=format') : device?.image) : 'https://via.placeholder.com/150'} 
+                      alt={device?.name} 
+                      className="card-image" 
+                      loading="lazy" 
+                    />
                   </div>
                   
                   <div className="card-content">
@@ -208,7 +213,7 @@ export default function Dashboard() {
             </div>
 
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <img src={returnModalItem.ItemID?.image} alt="Device" style={{ height: '100px', objectFit: 'contain', marginBottom: '1rem' }} />
+              <img src={returnModalItem.ItemID?.image} alt="Device" style={{ height: '100px', objectFit: 'contain', marginBottom: '1rem' }} loading="lazy" />
               <h3 style={{ margin: '0 0 0.5rem 0' }}>{returnModalItem.ItemID?.name}</h3>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>SN: {returnModalItem.ItemID?.serialNumber}</span>
             </div>

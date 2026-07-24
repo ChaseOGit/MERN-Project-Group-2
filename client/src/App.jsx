@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
 import './App.css'; 
-import AdminDashboard from './pages/AdminDashboard';
-import VerifyEmail from './pages/VerifyEmail';
-import OAuthCallback from './pages/OAuthCallback';
-import CirculationDesk from './pages/CirculationDesk';
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
+const CirculationDesk = lazy(() => import('./pages/CirculationDesk'));
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -31,18 +32,20 @@ function App() {
       <div className="app-wrapper">
         <Navbar theme={theme} toggleTheme={toggleTheme} />
         
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          {/* Landing page for verification links sent by email. */}
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          {/* Handles token handoff after backend completes Google OAuth callback. */}
-          <Route path="/oauth/callback" element={<OAuthCallback />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          {/* Updated the element to match our actual Dashboard component */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/desk" element={<CirculationDesk />} />
-        </Routes>
+        <Suspense fallback={<div style={{ textAlign: "center", padding: "4rem", color: "var(--text-muted)" }}><h2>Loading...</h2></div>}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            {/* Landing page for verification links sent by email. */}
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            {/* Handles token handoff after backend completes Google OAuth callback. */}
+            <Route path="/oauth/callback" element={<OAuthCallback />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            {/* Updated the element to match our actual Dashboard component */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/desk" element={<CirculationDesk />} />
+          </Routes>
+        </Suspense>
       </div>
     </Router>
   );

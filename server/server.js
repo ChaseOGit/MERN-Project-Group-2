@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const compression = require('compression');
 require('dotenv').config();
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUI = require('swagger-ui-express');
@@ -9,6 +10,7 @@ const app = express();
 
 // Middleware: Fulfills your JSON requirement & allows Cross-Origin requests
 app.use(cors());
+app.use(compression());
 app.use(express.json());
 
 // Swagger Configuration (Fulfills your Swagger requirement)

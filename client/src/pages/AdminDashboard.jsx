@@ -326,7 +326,7 @@ export default function AdminDashboard() {
               </div>
               <div><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Description</label><textarea name="description" required value={formData.description} onChange={handleChange} rows="3" style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} /></div>
               <div><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Image URL</label><input type="url" name="image" required value={formData.image} onChange={handleChange} style={{ width: '100%', marginTop: '0.25rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', boxSizing: 'border-box' }} /></div>
-              {formData.image && <div style={{ textAlign: 'center', marginTop: '1rem' }}><img src={formData.image} alt="Preview" style={{ maxHeight: '150px', borderRadius: '8px', border: '1px solid var(--border-color)' }} /></div>}
+              {formData.image && <div style={{ textAlign: 'center', marginTop: '1rem' }}><img src={formData.image} alt="Preview" style={{ maxHeight: '150px', borderRadius: '8px', border: '1px solid var(--border-color)' }} loading="lazy" /></div>}
               <button type="submit" disabled={isSubmitting} className="btn-primary" style={{ marginTop: '1rem' }}>{isSubmitting ? "Processing..." : "Add to Library Inventory"}</button>
             </form>
           </div>

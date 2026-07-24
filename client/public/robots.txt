@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cis4004chase.xyz/sitemap.xml
