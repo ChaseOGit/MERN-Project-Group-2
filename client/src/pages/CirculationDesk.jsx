@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, UserCircle, Package, ArrowRightLeft, AlertTriangle, CheckCircle, Clock, X, List } from 'lucide-react';
+import { Search, UserCircle, Package, ArrowRightLeft, AlertTriangle, CheckCircle, Clock, X, List, MousePointerClick } from 'lucide-react';
 import api from '../services/api';
 
 export default function CirculationDesk() {
@@ -101,7 +101,6 @@ export default function CirculationDesk() {
 
       setSerialNumber('');
       if (selectedStudent) loadStudentProfile(selectedStudent.user._id); 
-      // Refresh demo inventory list
       api.get('/devices').then(res => setAllDevices(res.data.data));
       
     } catch (error) {
@@ -109,6 +108,12 @@ export default function CirculationDesk() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Click a row to auto-fill the serial number
+  const handleRowClick = (sn, action) => {
+    setSerialNumber(sn);
+    setActionType(action);
   };
 
   if (!isAuthorized) return null;
@@ -172,31 +177,54 @@ export default function CirculationDesk() {
               </div>
 
               <div style={{ padding: '1.5rem' }}>
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0, color: 'var(--ucf-gold)' }}>
+                
+                {/* Pending Reservations */}
+                {selectedStudent.transactions.filter(t => t.Status === 'reserved').length > 0 && (
+                  <>
+                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0, color: 'var(--ucf-gold)' }}>
+                      <Clock size={18} /> Pending Web Reservations
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '-0.5rem 0 0.5rem 0' }}> Tip: Click a row to auto-fill the Serial Number</p>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', fontSize: '0.9rem' }}>
+                      <tbody>
+                        {selectedStudent.transactions.filter(t => t.Status === 'reserved').map(t => (
+                          <tr 
+                            key={t._id} 
+                            onClick={() => handleRowClick(t.ItemID?.serialNumber, 'checkout')}
+                            style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>{t.ItemID?.name}</td>
+                            <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>SN: {t.ItemID?.serialNumber}</td>
+                            <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: 'var(--ucf-gold)' }}><MousePointerClick size={16} /> Checkout</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0, color: 'var(--success-color)' }}>
                   <Package size={18} /> Currently Checked Out
                 </h4>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '-0.5rem 0 1rem 0' }}>💡 Demo Tip: Click a row to auto-fill the Serial Number!</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '-0.5rem 0 0.5rem 0' }}>💡 Demo Tip: Click a row to auto-fill the Serial Number!</p>
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', fontSize: '0.9rem' }}>
                   <tbody>
-                    {selectedStudent.transactions.filter(t => t.Status === 'active' || t.Status === 'reserved').map(t => (
+                    {selectedStudent.transactions.filter(t => t.Status === 'active').map(t => (
                       <tr 
                         key={t._id} 
-                        onClick={() => { setSerialNumber(t.ItemID?.serialNumber || ''); setActionType(t.Status === 'reserved' ? 'checkout' : 'return'); }}
-                        style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background 0.2s' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--border-color)'}
+                        onClick={() => handleRowClick(t.ItemID?.serialNumber, 'return')}
+                        style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       >
-                        <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>
-                          {t.Status === 'reserved' && <span style={{ color: 'var(--warning-color)', marginRight: '6px' }}>[RESERVED]</span>}
-                          {t.ItemID?.name}
-                        </td>
-                        <td style={{ padding: '0.75rem 0', color: 'var(--text-muted)' }}>SN: {t.ItemID?.serialNumber}</td>
-                        <td style={{ padding: '0.75rem 0', textAlign: 'right', color: new Date() > new Date(t.DueDate) ? 'var(--error-color)' : 'var(--text-main)' }}>
-                          {t.Status === 'reserved' ? 'Awaiting Pickup' : `Due: ${new Date(t.DueDate).toLocaleDateString()}`}
-                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>{t.ItemID?.name}</td>
+                        <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>SN: {t.ItemID?.serialNumber}</td>
+                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: 'var(--success-color)' }}><MousePointerClick size={16} /> Return</td>
                       </tr>
                     ))}
-                    {selectedStudent.transactions.filter(t => t.Status === 'active' || t.Status === 'reserved').length === 0 && <tr><td colSpan="3" style={{ padding: '0.75rem 0', color: 'var(--text-muted)' }}>No active rentals.</td></tr>}
+                    {selectedStudent.transactions.filter(t => t.Status === 'active').length === 0 && <tr><td colSpan="3" style={{ padding: '0.75rem 0', color: 'var(--text-muted)' }}>No active rentals.</td></tr>}
                   </tbody>
                 </table>
 
@@ -246,7 +274,7 @@ export default function CirculationDesk() {
             
             <div style={{ background: 'var(--bg-app)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               
-              {/* 🚀 RESTORED: Demo Inventory Button */}
+              {/**/}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Device Barcode / Serial
@@ -298,7 +326,7 @@ export default function CirculationDesk() {
         </div>
       </div>
 
-      {/* ======================= RESTORED: DEMO INVENTORY MODAL ======================= */}
+      {/* ======================= DEMO INVENTORY MODAL ======================= */}
       {showDemoModal && (
         <div className="modal-backdrop" onClick={() => setShowDemoModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '550px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
