@@ -74,8 +74,15 @@ const connectDB = require('./config/Db'); // Import your teammate's file
 // Connect database before accepting requests.
 connectDB();
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+//  Only listen on port 5000 if we run this file directly.
+// If Jest imports this file, export the app without starting the port
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
     console.log(`Server is running on port: ${PORT}`);
     console.log(`Swagger Docs available at http://localhost:${PORT}/api-docs`);
-});
+  });
+}
+
+// Export the app for Supertest
+module.exports = app;
