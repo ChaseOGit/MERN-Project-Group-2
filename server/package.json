@@ -18,6 +18,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.2",
+    "resend": "^6.18.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   },
