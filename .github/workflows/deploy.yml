@@ -1,13 +1,55 @@
-name: CI/CD Pipeline - Deploy to Droplet
+name: CI/CD Pipeline - Test & Deploy
 
+# Triggers on pushes and PRs to the main branch
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  deploy:
+  # ==========================================
+  # JOB 1: RUN JEST & SUPERTEST
+  # ==========================================
+  test:
+    name: Run Automated Tests
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x' 
+
+      - name: Install Backend Dependencies
+        run: |
+          cd server
+          npm install
+
+      - name: Run Jest & Supertest
+        
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          cd server
+          npm test
+
+  # ==========================================
+  # JOB 2: DEPLOY TO DIGITALOCEAN
+  # ==========================================
+  deploy:
+    name: Deploy to Production
+    needs: test 
+    runs-on: ubuntu-latest
+    
+    # Only run deploy if the push is directly to main (don't deploy on PRs yet)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: SSH into Droplet and Run Update Script
@@ -16,7 +58,6 @@ jobs:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # Run the update commands directly instead of looking for update.sh
           script: |
             cd /var/www/MERN-Project-Group-2
             git pull origin main
