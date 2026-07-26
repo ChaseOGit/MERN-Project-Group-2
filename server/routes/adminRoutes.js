@@ -15,6 +15,8 @@ const Transactions = require('../models/Transactions');
  *   post:
  *     summary: Manually trigger the near-due rental reminder job
  *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Reminder job executed successfully
@@ -40,6 +42,8 @@ router.post('/jobs/reminder-near-due', requireAuth, requireRole('Admin'), async 
  *     summary: Lookup students by Name, Email, or UCF ID
  *     description: Used by the Circulation Desk to find students for checkouts.
  *     tags: [Admin, Circulation]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: q
@@ -80,6 +84,8 @@ router.get('/users/search', requireAuth, requireRole('Admin', 'Faculty'), async 
  *     summary: Get a student's full circulation profile
  *     description: Fetches user details, active rentals, rental history, and calculates outstanding fines.
  *     tags: [Admin, Circulation]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
