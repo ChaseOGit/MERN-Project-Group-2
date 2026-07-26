@@ -118,6 +118,8 @@ router.get('/barcode/:upc', async (req, res) => {
  *   put:
  *     summary: Update an existing device by ID
  *     parameters:
+ *     security:
+ *       - bearerAuth: []
  *       - in: path
  *         name: id
  *         required: true
@@ -160,6 +162,8 @@ router.put('/:id', async (req, res) => {
  *   delete:
  *     summary: Delete a device by ID
  *     parameters:
+ *     security:
+ *       - bearerAuth: []
  *       - in: path
  *         name: id
  *         required: true
